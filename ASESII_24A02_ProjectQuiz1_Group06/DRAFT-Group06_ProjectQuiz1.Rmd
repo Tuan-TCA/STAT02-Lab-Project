@@ -165,6 +165,22 @@ safe_condition_numbers <- function(x, lambda, tol = 1e-10) {
     ridge = (largest + lambda) / (smallest + lambda)
   )
 }
+plot_model_result <- function(model, model_name) { 
+   model_result <- augment(model)
+  ggplot(model_result, aes(x = .fitted, y = .resid)) +
+    geom_point(color = "steelblue", size = 2, alpha = 0.8) +
+    
+    geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 1) +
+    
+    theme_minimal() +
+
+    labs(
+      title = paste("Residual Plot Model:", model_name),
+      subtitle = "Checking for non-linear patterns and constant variance",
+      x = "Predicted lpsa (.fitted)",
+      y = "Residuals (.resid)"
+    ) 
+}
 ```
 
 # Problem 1. Prediction design and leakage control
@@ -232,12 +248,58 @@ foldid <- make_foldid(nrow(x_train), k = 5L, seed = seeds$cv)
 ## 2A. OLS baseline
 
 ```{r ols, eval=FALSE}
+{r ols, eval=FALSE}
+x_train_df <- as_tibble(x_train)
+x_train_df$lpsa <- y_train
+m1 <- lm(lpsa  ~ .,data = x_train_df)
+model_coefs <- tidy(m1, conf.int = TRUE )
+print(model_coefs)
+
+train_preds <- predict(m1, newdata =  x_train_df)
+train_mse <- mean((x_train_df$lpsa - train_preds)^2)
+train_rmse <-sqrt(train_mse)
+cat("\n--- Training Error ---\n")
+cat("Training MSE :", round(train_mse, 5), "\n")
+cat("Training RMSE:", round(train_rmse, 5), "\n")
+cv_mses <- numeric(5)
+for(i in 1:5)
+{
+  fold_train <- x_train_df[foldid != i, ]
+  fold_val <- x_train_df[foldid == i, ]
+  model <-lm(lpsa  ~ .,data = fold_train) 
+  fold_preds <- predict(model, newdata =  fold_val)
+  cv_mses[i] <-  mean((fold_val$lpsa - fold_preds)^2)
+  log_message <- sprintf("Fold %d completed | Validation MSE: %.4f\n", i,cv_mses[i])
+  cat(log_message)
+  print(tidy(model, conf.int = TRUE ))
+  print(plot_model_result(model,paste('fold',i)))
+}
+cv_mse_mean <- mean(cv_mses)
+cv_rmse_mean <- mean(sqrt(cv_mses))
+cat("\n--- CV Error ---\n")
+cat("CV MSE :", round(cv_mse_mean, 5), "\n")
+cat("CV RMSE:", round(cv_rmse_mean, 5), "\n")
+print(plot_model_result(m1,'model'))
+
 # Fit OLS on x_train and y_train. Do not access y_test here.
 ```
 
 ## 2B. Ridge
 
 ```{r ridge, eval=FALSE}
+
+model_ridge <- fit_cv_glmnet(x_train,y_train,alpha= 0, foldid = foldid)
+plot(model_ridge)
+cat(sprintf("lambda.min: %.5f\n", model_ridge$lambda.min))
+cat(sprintf("lambda.1se: %.5f\n\n", model_ridge$lambda.1se))
+
+min_id <- which(model_ridge$lambda == model_ridge$lambda.min)
+se1_id <- which(model_ridge$lambda == model_ridge$lambda.1se)
+cat(sprintf("cvm.min: %.5f\n", model_ridge$cvm[min_id]))
+cat(sprintf("cvm.1se: %.5f\n\n", model_ridge$cvm[se1_id]))
+
+plot(model_ridge$glmnet.fit, xvar ='lambda', label = TRUE )#note the plot automatically turn into the plot.glmnet function 
+title("Ridge Coefficient Paths", line = 2.5)
 # Use fit_cv_glmnet(..., alpha = 0, foldid = foldid).
 # Report lambda.min, lambda.1se, paths, coefficients, and CV evidence.
 ```
@@ -245,6 +307,25 @@ foldid <- make_foldid(nrow(x_train), k = 5L, seed = seeds$cv)
 ## 2C. Lasso
 
 ```{r lasso, eval=FALSE}
+model_lasso <- fit_cv_glmnet(x_train,y_train,alpha= 1, foldid = foldid)
+plot(model_ridge)
+cat(sprintf("lambda.min: %.5f\n", model_lasso$lambda.min))
+cat(sprintf("lambda.1se: %.5f\n\n", model_lasso$lambda.1se))
+
+cat("--- Nonzero Predictors (lambda.min) ---\n")
+coef_min <- coef(model_ridge, s ='lambda.min')
+print(c_min[coef_min[,1]!= 0])# mask which is 0 on the coefficient column
+cat("\n--- Nonzero Predictors (lambda.1se) ---\n")
+coef_1se <- coef(model_ridge, s ='lambda.1se')
+print(c_1se[coef_1se[,1]!=0])
+
+min_id <- which(model_lasso$lambda == model_lasso$lambda.min)
+se1_id <- which(model_lasso$lambda == model_lasso$lambda.1se)
+cat(sprintf("cvm.min: %.5f\n", model_lasso$cvm[min_id]))
+cat(sprintf("cvm.1se: %.5f\n\n", model_lasso$cvm[se1_id]))
+
+plot(model_lasso$glmnet.fit, xvar ='lambda', label = TRUE )
+title("Lasso Coefficient Paths", line = 2.5)
 # Use fit_cv_glmnet(..., alpha = 1, foldid = foldid).
 # Report lambda.min, lambda.1se, paths, and nonzero predictors.
 ```
