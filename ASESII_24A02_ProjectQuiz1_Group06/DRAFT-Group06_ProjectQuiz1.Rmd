@@ -15,7 +15,7 @@ output:
 bibliography: references.bib
 link-citations: true
 params:
-  group_number: 0
+  group_number: 6
 fontsize: 11pt
 geometry: margin=1in
 ---
@@ -248,7 +248,6 @@ foldid <- make_foldid(nrow(x_train), k = 5L, seed = seeds$cv)
 ## 2A. OLS baseline
 
 ```{r ols, eval=FALSE}
-{r ols, eval=FALSE}
 x_train_df <- as_tibble(x_train)
 x_train_df$lpsa <- y_train
 m1 <- lm(lpsa  ~ .,data = x_train_df)
