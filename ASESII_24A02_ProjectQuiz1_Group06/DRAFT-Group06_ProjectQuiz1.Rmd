@@ -1,7 +1,7 @@
 ---
 title: "ASESII 24A02 Project-Based Quiz 1"
 subtitle: "Ridge, Lasso, and Regularization for Neural Features"
-author: "Group XX: [names and student IDs]"
+author: "Group 06: [names and student IDs]"
 date: "`r format(Sys.Date(), '%Y-%m-%d')`"
 output:
   pdf_document:

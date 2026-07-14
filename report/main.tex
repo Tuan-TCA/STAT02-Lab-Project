@@ -1,0 +1,156 @@
+\documentclass[12pt]{scrartcl}
+\usepackage[sexy,noasy]{evan}
+\usepackage[margin=1in]{geometry}
+
+\parindent 0pt
+\setcounter{secnumdepth}{4}
+
+% 1. Math and Formatting Packages
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{bm}
+
+% 2. Tables and Floats
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{float}        % gives you the [H] specifier
+\usepackage{placeins}
+\usepackage{caption}
+\usepackage{booktabs}     % required for \toprule, \midrule, \bottomrule
+\captionsetup[table]{labelformat=empty}
+
+% 3. General Utilities
+\usepackage{tasks}
+\usepackage{indentfirst}
+\usepackage{appendix}
+\usepackage{forest}
+\usepackage{csquotes}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tcolorbox}
+
+\newtcolorbox{gitbox}{
+  colback=white,
+  tcbox raise=5pt,
+}
+
+% 4. Custom Styling (Colors and Listings)
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{listings}
+
+% Custom Colors
+\definecolor{blue}{RGB}{31,56,100}
+\definecolor{dkgreen}{RGB}{0,153,0}
+\definecolor{gray}{RGB}{128,128,128}
+\definecolor{mauve}{RGB}{148,0,209}
+\definecolor{codegreen}{RGB}{0,153,0}
+\definecolor{codegray}{RGB}{128,128,128}
+\definecolor{codepurple}{RGB}{148,0,209}
+\definecolor{backcolour}{RGB}{242,242,235}
+
+% Listings Configuration
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+% 5. Graphics and Charts
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% 6. Variables & Commands
+\newtheorem*{soln1}{Solution}
+
+\newcommand{\coursename}{CS486 - Introduction to Database System}
+\newcommand{\reporttitle}{Campus Space Management System}
+\newcommand{\reportname}{Phase 1 Report}
+\newcommand{\studentname}{ Tran Canh Anh Tuan 24125048 \\ Le Dat Phuc An 24125052 \\ Vong Chi Van 24125049 \\ Pham Nguyen Minh Quan 24125041}
+\newcommand{\teachername}{ Nguyen Ngoc Toan, MSc. \\ Nguyen Ngoc Minh Chau, MSc. \\ Le Thi Nhan, PhD }
+
+\ihead{\textbf{}}
+
+% 7. Hyperref (Load Last)
+\usepackage{hyperref}
+
+\begin{document}
+
+\begin{titlepage}
+	\begin{center}
+		\begin{center}
+			\textsc{\LARGE UNIVERSITY OF SCIENCE, VNU-HCM} \\ [0.5cm]
+			\textsc{\large FACULTY OF INFORMATION TECHNOLOGY} \\ [0.2cm]
+			\textsc{\large ADVANCED PROGRAM IN COMPUTER SCIENCE}
+		\end{center}
+
+		\vspace*{1cm}
+		\includegraphics[scale=2]{img/hcmus_logo.png}
+		\vspace*{1cm}
+
+		{\LARGE \bfseries \uppercase{\coursename} \\[0.5cm] }
+		{\large \bfseries \reportname}
+		\author{Tuan, An, Van, Quan}
+		\textsc{\Large }\\[1.5cm]
+
+
+		% Title
+		\rule{\linewidth}{0.3mm} \\[0.4cm]
+		{ \huge \bfseries\color{blue} \reporttitle \\[0.4cm] }
+		\rule{\linewidth}{0.3mm} \\[2cm]
+
+
+		% Author and supervisor
+		\begin{minipage}[t]{0.48\textwidth}
+			\begin{flushleft} \large
+				\emph{Students:}\\
+				\studentname
+			\end{flushleft}
+		\end{minipage}
+		~
+		\begin{minipage}[t]{0.48\textwidth}
+			\begin{flushright} \large
+				\emph{Lecturers:} \\
+				\teachername
+			\end{flushright}
+		\end{minipage}\\[1cm]
+
+		% Bottom of the page
+		{\textbf{\large {2026}}}
+
+	\end{center}
+\end{titlepage}
+
+% Main Document Settings
+\renewcommand{\baselinestretch}{1}
+
+\title{Report - Group 08}
+\renewcommand{\contentsname}{Summary}
+
+\newpage
+\tableofcontents
+\newpage
+
+% Sections
+\input{src/10_introduction.tex}
+
+\end{document}
