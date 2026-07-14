@@ -273,14 +273,155 @@ foldid <- make_foldid(nrow(x_train), k = 5L, seed = seeds$cv)
 
 *Write the ridge derivation. Define dimensions and explain uniqueness.*
 
+Let $X \in \mathbb{R}^{n \times p}, y \in \mathbb{R}^n, b \in \mathbb{R}^p$ and define
+$$
+G = \frac{1}{n} X^\top X, \quad
+z = \frac{1}{n} X^\top y
+$$
+consequently, $G \in \mathbb{R}^{p \times p}$ and $z \in \mathbb{R}^p$.
+
+From the objective function
+$$Q_\lambda(b) = \frac{1}{2n}\|y - Xb\|_2^2 + \frac{\lambda}{2}\|b\|_2^2$$
+
+We expand Ridge objective function
+$$
+\begin{align}
+  Q_\lambda (b) &= \frac{1}{2n} \|y - X b\|_2^2 + \frac{\lambda}{2} \|b\|_2^2, quad (\lambda > 0) \\
+  &= \frac{1}{2n} (y - X b)^\top (y - X b) + \frac{\lambda}{2} b^\top b \\
+  &= \frac{1}{2n} (y^\top y - y^\top X b - b^\top X^\top y + b^\top X^\top X b) + \frac{\lambda}{2} b^\top b \\
+  &= \frac{1}{2n} (y^\top y - 2 y^\top X b + b^\top X^\top X b) + \frac{\lambda}{2} b^\top b \\
+\end{align}
+$$
+
+We take the gradient with respect to $b$ annd substitute
+$$
+\begin{align}
+  \nabla_b Q_\lambda (b) &= 0 - \frac{1}{n} y^\top X + \frac{1}{n} X^\top X b + \lambda b \\
+  &= - z + G b + \lambda b
+\end{align}
+$$
+
+Set $\nabla_b Q_\lambda (b) = 0 \Leftrightarrow (G + \lambda I_p) b = z$ which is the \textbf{normal equation}.
+
+Because $G = \frac{1}{n}X^\top X$ is a positive semi-definite Gram matrix, all its eigenvalues are $\ge 0$. Adding a penalty $\lambda > 0$ along the diagonal (i.e., $\lambda I_p$) shifts all eigenvalues up by $\lambda$. Thus, the matrix $(G + \lambda I_p)$ is strictly positive definite (all eigenvalues $\ge \lambda > 0$), making it full rank and invertible. This guarantees a unique minimizer
+
+$$\hat{b}_\lambda^{\text{ridge}} = (G + \lambda I_p)^{-1} z$$
+
 ```{r ridge-conditioning, eval=FALSE}
 # Use x_train and the fitted ridge lambda.min.
 # safe_condition_numbers(x_train, lambda = ...)
 ```
 
+```{r ridge-conditioning}
+# Assume x_train, y_train, and lambda.min from a previous cv.glmnet are loaded
+# n <- nrow(x_train)
+
+# Compute G and z
+# G <- (1/n) * t(x_train) %*% x_train
+
+# Compute the eigenvalues of G
+# evals_G <- eigen(G)$values
+# mu_max <- max(evals_G)
+# mu_min <- min(evals_G)
+
+# Compute kappa_2(G)
+# kappa_G <- ifelse(zapsmall(mu_min) == 0, Inf, mu_max / mu_min)
+
+# Compute kappa_2(G + lambda*I)
+# lambda_min <- ... # Insert your extracted lambda.min
+# kappa_ridge <- (mu_max + lambda_min) / (mu_min + lambda_min)
+
+# cat("Condition number of G (kappa_G):", kappa_G, "\n")
+# cat("Condition number of Ridge (kappa_ridge):", kappa_ridge, "\n")
+```
+
 ## 3B. Lasso optimality and soft thresholding
 
 *Derive the zero/nonzero optimality conditions and the orthonormal-design formula.*
+
+Let $X \in \mathbb{R}^{n \times p}, y \in \mathbb{R}^n, b \in \mathbb{R}^p$ and define
+$$
+G = \frac{1}{n} X^\top X = I_p, \quad
+z = \frac{1}{n} X^\top y
+$$
+consequently, $G \in \mathbb{R}^{p \times p}$ and $z \in \mathbb{R}^p$.
+
+The objective function
+$$
+R_\lambda (b) = \frac{1}{2n} \|y - X b\|_2^2 + \lambda \|b\|_1, \quad \|b\|_1 = \sum_{j=1}^p |b_j|, \lambda > 0
+$$
+
+We expand Lasso objective function
+$$
+\begin{aligned}
+L_\lambda (b) &= \frac{1}{2n} \|y - X b\|_2^2 + \lambda \|b\|_1 \\
+              &= \frac{1}{2n} (y - X b)^\top (y - X b) + \lambda \sum_{j=1}^p |b_j| \\
+              &= \frac{1}{2n} (y^\top y - y^\top X b - b^\top X^\top y + b^\top X^\top X b) + \lambda \sum_{j=1}^p |b_j|
+\end{aligned}
+$$
+
+The term $y^\top X b$ is is a scalar, therefore $(y^\top X b)^\top = b^\top X^\top (y^\top)^\top = b^\top X^\top y$.
+
+Then the objective becomes
+$$
+\begin{aligned}
+L_\lambda (b) &= \frac{1}{2n} y^\top y - \frac{1}{n} b^\top X^\top y + \frac{1}{2n} b^\top X^\top X b + \lambda \sum_{j=1}^p |b_j| \\
+              &= \frac{1}{2n} y^\top y - b^\top z + \frac{1}{2} b^\top b + \lambda \sum_{j=1}^p |b_j| \\
+              &= \frac{1}{2n} y^\top y + \sum_{j=1}^p \left( - b_j z_j + \frac{1}{2n} b_j^2 + \lambda |b_j| \right)
+\end{aligned}
+$$
+
+The term $\frac{1}{2n} y^\top y$ is a constant with respect to the variable $b$. We can drop it, leaving a sum of $p$ independent 1-dimensional optimization problems.
+
+Consider a fixed $j$, and let $l_j (t) = \frac{1}{2} t^2 - t z_j + \lambda |t|$, for $t \in \mathbb{R}$.
+We analyze this in three cases because $|t|$ is *non-differentiable* at $t=0$.
+
+- **Case 1:** If $t > 0$, then $|t| = t$ and $l_j (t) = \frac{1}{2} t^2 - t z_j + \lambda t$. Thus, $l_j' (t) = t - z_j + \lambda$.
+  $$ l_j' (t) = 0 \iff t = z_j - \lambda \quad (1) $$
+  Moreover, since we assumed $t > 0$, equation $(1)$ is a valid minimum if and only if $z_j > \lambda$.
+
+- **Case 2:** If $t < 0$, then $|t| = - t$ and $l_j (t) = \frac{1}{2} t^2 - t z_j - \lambda t$. Thus, $l_j' (t) = t - z_j - \lambda$.
+  $$ l_j' (t) = 0 \iff t = z_j + \lambda \quad (2) $$
+  Moreover, since we assumed $t < 0$, equation $(2)$ is a valid minimum if and only if $z_j < -\lambda$.
+
+- **Case 3:** If $|z_j| \le \lambda$, there is no valid solution where the derivative equals zero (neither Case 1 nor Case 2). Because the function is strictly convex, the global minimum must exist, which means it is trapped exactly at the non-differentiable corner: $t = 0$. We verify that $t = 0$ minimizes $l_j (t)$ (3).
+
+For any $t \in \mathbb{R}$
+$$
+\begin{aligned}
+l_j (t) - l_j (0) &= \frac{1}{2} t^2 - t z_j + \lambda |t| \\
+                  &\ge \frac{1}{2} t^2 - |t| |z_j| + \lambda |t| \quad (-t z_j \ge -|t| |z_j|) \\
+                  &\ge \frac{1}{2} t^2 - |t| (|z_j| - \lambda) \\
+                  &\ge 0 \quad (|z_j| - \lambda \le 0)
+\end{aligned}
+$$
+Therefore, $l_j (t) \ge l_j (0)$ for all $t \in \mathbb{R}$, proving $t=0$ is the global minimum for this range.
+
+Combining these cases yields the soft-thresholding estimator for $\hat{b}_j$:
+$$
+\hat{b}_j = \begin{cases}
+  z_j - \lambda & \text{if } z_j > \lambda, \\
+  0             & \text{if } |z_j| \le \lambda, \\
+  z_j + \lambda & \text{if } z_j < -\lambda
+\end{cases}
+$$
+
+**Soft-thresholding operator under orthonormal design**
+Assume that $X^T X = I_p$. Let $z = X^T y$. Then the Lasso minimizer of $L_\lambda (b)$ is <u>unique</u> and has coordinates:
+$$
+\hat{b}_j = S_\lambda (z_j), \quad \text{where the soft-thresholding function is } S_\lambda (z) = \text{sgn}(z) (|z| - \lambda)_+
+$$
+where $(u)_+ = \max(u, 0)$.
+
+**Uniqueness.**
+The uniqueness is guaranteed because the objective function is strictly convex. Under the orthogonal design ($\frac{1}{n} X^T X = I_p$), the variables are perfectly independent, forming a strictly convex "bowl" shape. Even with the sharp point added by the $L_1$ penalty, the strict convexity mathematically ensures there is exactly one absolute global minimum.
+
+**Intuition.**
+Under $X^T X = I_p$, we can compare the closed-form estimators
+- **Ridge:** $\hat{b}_j^{\text{Ridge}} = z_j / (1 + \lambda)$
+  - *Proportional Shrinkage:* It divides the coefficient by a constant. The coefficients get extremely small, but they never become zero.
+- **Lasso:** $\hat{b}_j^{\text{Lasso}} = \text{sgn}(z_j) (|z_j| - \lambda)_+$
+  - *Absolute Shrinkage:* It subtracts a constant from the magnitude. If a coefficient is originally small, the penalty forces it to exactly zero. This gives Lasso its *feature selection* capability.
 
 ## 3C. Connect algebra to evidence
 
