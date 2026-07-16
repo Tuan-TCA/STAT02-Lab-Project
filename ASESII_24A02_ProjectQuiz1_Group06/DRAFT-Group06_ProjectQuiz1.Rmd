@@ -511,16 +511,16 @@ title("Ridge Coefficient Paths", line = 2.5)
 
 ```{r lasso, eval=FALSE}
 model_lasso <- fit_cv_glmnet(x_train,y_train,alpha= 1, foldid = foldid)
-plot(model_ridge)
+plot(model_lasso)
 cat(sprintf("lambda.min: %.5f\n", model_lasso$lambda.min))
 cat(sprintf("lambda.1se: %.5f\n\n", model_lasso$lambda.1se))
 
 cat("--- Nonzero Predictors (lambda.min) ---\n")
-coef_min <- coef(model_ridge, s ='lambda.min')
-print(c_min[coef_min[,1]!= 0])# mask which is 0 on the coefficient column
+coef_min <- coef(model_lasso, s ='lambda.min')
+print(coef_min[coef_min[,1]!= 0])# mask which is 0 on the coefficient column
 cat("\n--- Nonzero Predictors (lambda.1se) ---\n")
-coef_1se <- coef(model_ridge, s ='lambda.1se')
-print(c_1se[coef_1se[,1]!=0])
+coef_1se <- coef(model_lasso, s ='lambda.1se')
+print(coef_1se[coef_1se[,1]!=0])
 
 min_id <- which(model_lasso$lambda == model_lasso$lambda.min)
 se1_id <- which(model_lasso$lambda == model_lasso$lambda.1se)
