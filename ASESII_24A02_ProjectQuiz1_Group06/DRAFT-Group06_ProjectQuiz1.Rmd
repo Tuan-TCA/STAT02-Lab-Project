@@ -18,11 +18,12 @@ params:
   group_number: 6
 fontsize: 11pt
 geometry: margin=1in
-editor_options: 
-  markdown: 
+editor_options:
+  markdown:
     wrap: 72
 ---
 
+<<<<<<< Updated upstream
 ```{=html}
 <!--
 Copy this template into your group submission folder, rename it
@@ -32,17 +33,20 @@ final report.
 -->
 ```
 
-# Authorship and contribution statement {.unnumbered}
+# Authorship and contribution statement {-}
 
 We confirm that every group member can explain the submitted analysis.
 AI use is reported in `GroupXX_AI_Log.csv`, and the group checked every
 AI-assisted item used in this report.
 
-| Student | ID   | Main contributions | Verification performed |
-|---------|------|--------------------|------------------------|
-| [Name]  | [ID] | [Work]             | [Check]                |
+| Student               | ID       | Main contributions | Verification performed |
+| --------------------- | -------- | ------------------ | ---------------------- |
+| Le Dat Phuc An        | 24125052 | [Work]             | [Check]                |
+| Pham Nguyen Minh Quan | 24125041 | [Work]             | [Check]                |
+| Tran Canh Anh Tuan    | 24125048 | [Work]             | [Check]                |
+| Vong Chi Van          | 24125049 | [Work]             | [Check]                |
 
-# Abstract {.unnumbered}
+# Abstract {-}
 
 *Maximum 150 words: prediction problem, methods, main evidence, and
 recommendation.*
@@ -173,13 +177,13 @@ safe_condition_numbers <- function(x, lambda, tol = 1e-10) {
     ridge = (largest + lambda) / (smallest + lambda)
   )
 }
-plot_model_result <- function(model, model_name) { 
+plot_model_result <- function(model, model_name) {
    model_result <- augment(model)
   ggplot(model_result, aes(x = .fitted, y = .resid)) +
     geom_point(color = "steelblue", size = 2, alpha = 0.8) +
-    
+
     geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 1) +
-    
+
     theme_minimal() +
 
     labs(
@@ -187,7 +191,7 @@ plot_model_result <- function(model, model_name) {
       subtitle = "Checking for non-linear patterns and constant variance",
       x = "Predicted lpsa (.fitted)",
       y = "Residuals (.resid)"
-    ) 
+    )
 }
 ```
 
@@ -455,7 +459,7 @@ for(i in 1:5)
 {
   fold_train <- x_train_df[foldid != i, ]
   fold_val <- x_train_df[foldid == i, ]
-  model <-lm(lpsa  ~ .,data = fold_train) 
+  model <-lm(lpsa  ~ .,data = fold_train)
   fold_preds <- predict(model, newdata =  fold_val)
   cv_mses[i] <-  mean((fold_val$lpsa - fold_preds)^2)
   log_message <- sprintf("Fold %d completed | Validation MSE: %.4f\n", i,cv_mses[i])
@@ -476,7 +480,6 @@ print(plot_model_result(m1,'model'))
 ## 2B. Ridge
 
 ```{r ridge, eval=FALSE}
-
 model_ridge <- fit_cv_glmnet(x_train,y_train,alpha= 0, foldid = foldid)
 plot(model_ridge)
 cat(sprintf("lambda.min: %.5f\n", model_ridge$lambda.min))
@@ -487,7 +490,7 @@ se1_id <- which(model_ridge$lambda == model_ridge$lambda.1se)
 cat(sprintf("cvm.min: %.5f\n", model_ridge$cvm[min_id]))
 cat(sprintf("cvm.1se: %.5f\n\n", model_ridge$cvm[se1_id]))
 
-plot(model_ridge$glmnet.fit, xvar ='lambda', label = TRUE )#note the plot automatically turn into the plot.glmnet function 
+plot(model_ridge$glmnet.fit, xvar ='lambda', label = TRUE )#note the plot automatically turn into the plot.glmnet function
 title("Ridge Coefficient Paths", line = 2.5)
 # Use fit_cv_glmnet(..., alpha = 0, foldid = foldid).
 # Report lambda.min, lambda.1se, paths, coefficients, and CV evidence.
@@ -585,30 +588,37 @@ $$\hat{b}_\lambda^{\text{ridge}} = (G + \lambda I_p)^{-1} z$$
 ```{r ridge-conditioning, eval=FALSE}
 # Use x_train and the fitted ridge lambda.min.
 # safe_condition_numbers(x_train, lambda = ...)
-```
 
-```{r ridge-conditioning}
 # Assume x_train, y_train, and lambda.min from a previous cv.glmnet are loaded
-# n <- nrow(x_train)
+n <- nrow(x_train)
 
 # Compute G and z
-# G <- (1/n) * t(x_train) %*% x_train
+G <- (1/n) * t(x_train) %*% x_train
 
 # Compute the eigenvalues of G
-# evals_G <- eigen(G)$values
-# mu_max <- max(evals_G)
-# mu_min <- min(evals_G)
+evals_G <- eigen(G)$values
+mu_max <- max(evals_G)
+mu_min <- min(evals_G)
 
 # Compute kappa_2(G)
-# kappa_G <- ifelse(zapsmall(mu_min) == 0, Inf, mu_max / mu_min)
+kappa_G <- ifelse(zapsmall(mu_min) == 0, Inf, mu_max / mu_min)
 
 # Compute kappa_2(G + lambda*I)
-# lambda_min <- ... # Insert your extracted lambda.min
-# kappa_ridge <- (mu_max + lambda_min) / (mu_min + lambda_min)
+lambda_min <- ... # Insert your extracted lambda.min
+kappa_ridge <- (mu_max + lambda_min) / (mu_min + lambda_min)
 
-# cat("Condition number of G (kappa_G):", kappa_G, "\n")
-# cat("Condition number of Ridge (kappa_ridge):", kappa_ridge, "\n")
+cat("Condition number of G (kappa_G):", kappa_G, "\n")
+cat("Condition number of Ridge (kappa_ridge):", kappa_ridge, "\n")
 ```
+*Explanation.*
+- *Numerically:* Condition number measures how sensitive the solution is to small changes or errors in the data. An infinite or very large condition number means $G$ is singular or ill-conditioned, making matrix inversion unstable or impossible. By adding a positive constant $\lambda$ to the diagonal elements, we strictly bound the smallest eigenvalue away from zero. This reduces the condition number, stabilizing the matrix inversion and computational precision.
+Numerically:Without Ridge: If $X$ has highly correlated columns, $\mu_{\min}$ is very close to $0$, causing $\kappa_2(G)$ to blow up to infinity. This makes the matrix inversion highly unstable and sensitive to floating-point errors.
+With Ridge: Adding $\lambda > 0$ to the diagonal ensures the smallest eigenvalue is strictly bounded away from zero ($\mu_{\min} + \lambda \ge \lambda$). This dramatically decreases the condition number, stabilizing the matrix inversion and making the numerical computation robust.
+
+- *Geometrically:* The matrix $G$ represents the curvature of the unpenalized least-squares loss surface. If $G$ has a zero (or near-zero) eigenvalue, the loss surface forms a flat "valley" in that principal direction, meaning there is no unique bottom (minimizer). Adding $\lambda I_p$ adds isotropic (uniform spherical) curvature to the loss function. Geometrically, this bends those flat valleys upward into a strictly convex, bowl-shaped surface, ensuring a single, globally unique minimum exists.
+Geometrically:
+Without Ridge (OLS): The contours of the least squares loss function can form long, narrow ellipses (or flat valleys if perfectly collinear), indicating high uncertainty in certain directions.
+With Ridge: Adding the $L_2$ penalty $\frac{\lambda}{2}\Vert{}b\Vert{}_2^2$ is equivalent to shrinking the solution towards the origin. Geometrically, the contours of $(G + \lambda I_p)$ become more circular (spherical) compared to $G$. The feature space is restricted, reducing variance along the directions of smallest variance (the smallest eigenvalues).
 
 ## 3B. Lasso optimality and soft thresholding
 
@@ -629,7 +639,7 @@ $$
 
 We expand Lasso objective function $$
 \begin{aligned}
-L_\lambda (b) &= \frac{1}{2n} \|y - X b\|_2^2 + \lambda \|b\|_1 \\
+R_\lambda (b) &= \frac{1}{2n} \|y - X b\|_2^2 + \lambda \|b\|_1 \\
               &= \frac{1}{2n} (y - X b)^\top (y - X b) + \lambda \sum_{j=1}^p |b_j| \\
               &= \frac{1}{2n} (y^\top y - y^\top X b - b^\top X^\top y + b^\top X^\top X b) + \lambda \sum_{j=1}^p |b_j|
 \end{aligned}
@@ -640,9 +650,9 @@ $(y^\top X b)^\top = b^\top X^\top (y^\top)^\top = b^\top X^\top y$.
 
 Then the objective becomes $$
 \begin{aligned}
-L_\lambda (b) &= \frac{1}{2n} y^\top y - \frac{1}{n} b^\top X^\top y + \frac{1}{2n} b^\top X^\top X b + \lambda \sum_{j=1}^p |b_j| \\
+R_\lambda (b) &= \frac{1}{2n} y^\top y - \frac{1}{n} b^\top X^\top y + \frac{1}{2n} b^\top X^\top X b + \lambda \sum_{j=1}^p |b_j| \\
               &= \frac{1}{2n} y^\top y - b^\top z + \frac{1}{2} b^\top b + \lambda \sum_{j=1}^p |b_j| \\
-              &= \frac{1}{2n} y^\top y + \sum_{j=1}^p \left( - b_j z_j + \frac{1}{2n} b_j^2 + \lambda |b_j| \right)
+              &= \frac{1}{2n} y^\top y + \sum_{j=1}^p \left( - b_j z_j + \frac{1}{2} b_j^2 + \lambda |b_j| \right)
 \end{aligned}
 $$
 
@@ -694,9 +704,9 @@ $\hat{b}_j$: $$
 \end{cases}
 $$
 
-**Soft-thresholding operator under orthonormal design** Assume that
-$X^T X = I_p$. Let $z = X^T y$. Then the Lasso minimizer of
-$L_\lambda (b)$ is <u>unique</u> and has coordinates: $$
+**Soft-thresholding operator under orthonormal design**
+Assume that $\frac{1}{n} X^T X = I_p$. Let $z = \frac{1}{n} X^T y$. Then the Lasso minimizer of $R_\lambda (b)$ is _unique_ and has coordinates
+$$
 \hat{b}_j = S_\lambda (z_j), \quad \text{where the soft-thresholding function is } S_\lambda (z) = \text{sgn}(z) (|z| - \lambda)_+
 $$ where $(u)_+ = \max(u, 0)$.
 
@@ -707,15 +717,10 @@ forming a strictly convex "bowl" shape. Even with the sharp point added
 by the $L_1$ penalty, the strict convexity mathematically ensures there
 is exactly one absolute global minimum.
 
-**Intuition.** Under $X^T X = I_p$, we can compare the closed-form
-estimators - **Ridge:**
-$\hat{b}_j^{\text{Ridge}} = z_j / (1 + \lambda)$ - *Proportional
-Shrinkage:* It divides the coefficient by a constant. The coefficients
-get extremely small, but they never become zero. - **Lasso:**
-$\hat{b}_j^{\text{Lasso}} = \text{sgn}(z_j) (|z_j| - \lambda)_+$ -
-*Absolute Shrinkage:* It subtracts a constant from the magnitude. If a
-coefficient is originally small, the penalty forces it to exactly zero.
-This gives Lasso its *feature selection* capability.
+**Intuition.**
+Under $\frac{1}{n} X^T X = I_p$, we can compare the closed-form estimators
+- **Ridge:** $\hat{b}_j^{\text{Ridge}} = (1 + 2 \lambda)^{-1} z_j$ (proportional shrinkage). It divides the coefficient by a constant. The coefficients get extremely small, but they never become zero. The optimality condition means $b_j$ only equals exactly zero if $z_j$ is exactly zero (which is highly improbable with real data).
+- **Lasso:** $\hat{b}_j^{\text{Lasso}} = \text{sgn}(z_j) (|z_j| - \lambda)_+$ (absolute shrinkage). It subtracts a constant from the magnitude. If a coefficient is originally small, the penalty forces it to exactly zero. Case 3 shows that Lasso maps a whole range of values to exactly zero, creating sparsity. This gives Lasso its *feature selection* capability.
 
 ## 3C. Connect algebra to evidence
 
