@@ -23,18 +23,7 @@ editor_options:
     wrap: 72
 ---
 
-\<\<\<\<\<\<\< Updated upstream
-
-```{=html}
-<!--
-Copy this template into your group submission folder, rename it
-GroupXX_ProjectQuiz1.Rmd, place references.bib beside it, and set the group
-number parameter before rendering. Remove instructional comments from the
-final report.
--->
-```
-
-# Authorship and contribution statement {.unnumbered}
+# Authorship and contribution statement {-}
 
 We confirm that every group member can explain the submitted analysis.
 AI use is reported in `GroupXX_AI_Log.csv`, and the group checked every
@@ -60,8 +49,10 @@ missing_packages <- required_packages[
   !vapply(required_packages, requireNamespace, logical(1), quietly = TRUE)
 ]
 if (length(missing_packages)) {
-  stop("Install the required packages before rendering: ",
-       paste(missing_packages, collapse = ", "))
+  stop(
+    "Install the required packages before rendering: ",
+    paste(missing_packages, collapse = ", ")
+  )
 }
 
 library(tidyverse)
@@ -84,6 +75,7 @@ seeds <- list(
 ## Shared helper functions {.unnumbered}
 
 ```{r helpers}
+# safely locates dataset using relative paths
 find_exam_data <- function(filename) {
   input <- knitr::current_input(dir = TRUE)
   input_dir <- if (length(input) && nzchar(input)) dirname(input) else getwd()
@@ -101,6 +93,7 @@ find_exam_data <- function(filename) {
   hits[[1L]]
 }
 
+# generates row numbers to split data into a training set and a testing set
 split_rows <- function(n, train_prop = 0.80, seed) {
   stopifnot(n >= 10L, train_prop > 0, train_prop < 1)
   set.seed(seed)
@@ -108,6 +101,14 @@ split_rows <- function(n, train_prop = 0.80, seed) {
   list(train = train, test = setdiff(seq_len(n), train))
 }
 
+# assigns each row in training data to a specific "fold" for k-fold cross-validation
+make_foldid <- function(n, k = 5L, seed) {
+  if (k < 3L || k > n) stop("Require 3 <= k <= number of training rows.")
+  set.seed(seed)
+  sample(rep(seq_len(k), length.out = n))
+}
+
+# learns the mean and standard deviation of training data.
 fit_scaler <- function(x, tol = 1e-12) {
   x <- as.matrix(x)
   center <- colMeans(x)
@@ -123,18 +124,14 @@ fit_scaler <- function(x, tol = 1e-12) {
   )
 }
 
+# applies the scaling rules fit_scaler to any dataset
 apply_scaler <- function(x, prep) {
   x <- as.matrix(x)[, prep$keep, drop = FALSE]
   x <- sweep(x, 2L, prep$center, "-")
   sweep(x, 2L, prep$scale, "/")
 }
 
-make_foldid <- function(n, k = 5L, seed) {
-  if (k < 3L || k > n) stop("Require 3 <= k <= number of training rows.")
-  set.seed(seed)
-  sample(rep(seq_len(k), length.out = n))
-}
-
+# fits a penalized regression model using cross-validation
 fit_cv_glmnet <- function(x, y, alpha, foldid) {
   glmnet::cv.glmnet(
     x = x,
@@ -148,22 +145,27 @@ fit_cv_glmnet <- function(x, y, alpha, foldid) {
   )
 }
 
+# calculates how wrong model's predictions are using RMSE and MAE
 score_regression <- function(y, prediction) {
   y <- as.numeric(y)
   prediction <- as.numeric(prediction)
   if (length(y) != length(prediction) || any(!is.finite(c(y, prediction)))) {
     stop("Metrics require equal-length finite vectors.")
   }
-  c(RMSE = sqrt(mean((y - prediction)^2)),
-    MAE = mean(abs(y - prediction)))
+  c(
+    RMSE = sqrt(mean((y - prediction)^2)),
+    MAE = mean(abs(y - prediction))
+  )
 }
 
+# counts how many variables the model actually used
 count_nonzero <- function(fit, s = "lambda.min", tol = 1e-8) {
   b <- as.matrix(stats::coef(fit, s = s))
   slopes <- b[rownames(b) != "(Intercept)", 1L]
   sum(abs(slopes) > tol)
 }
 
+# measures multicollinearity and shows how applying Ridge regularization reduces instability
 safe_condition_numbers <- function(x, lambda, tol = 1e-10) {
   eigenvalues <- eigen(
     crossprod(x) / nrow(x),
@@ -178,15 +180,13 @@ safe_condition_numbers <- function(x, lambda, tol = 1e-10) {
     ridge = (largest + lambda) / (smallest + lambda)
   )
 }
+
 plot_model_result <- function(model, model_name) {
-   model_result <- augment(model)
+  model_result <- augment(model)
   ggplot(model_result, aes(x = .fitted, y = .resid)) +
     geom_point(color = "steelblue", size = 2, alpha = 0.8) +
-
     geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 1) +
-
     theme_minimal() +
-
     labs(
       title = paste("Residual Plot Model:", model_name),
       subtitle = "Checking for non-linear patterns and constant variance",
@@ -235,7 +235,7 @@ which is a continuous number
 ### 2. Candidate Predictors
 
 |                      |                                  |                     |
-|---------------------|-------------------------------|--------------------|
+| -------------------- | -------------------------------- | ------------------- |
 | Candidate Predictors | Full Name                        | Type                |
 | lcavol               | Log Cancer Volume                | Continuous          |
 | lweight              | Log Prostate Weight              | Continuous          |
@@ -271,12 +271,11 @@ lbph, svi, lcp, gleason, and pgg45).
 
 ### 7. Required Exclusions
 
-The response variable, `lpsa`, was excluded from the predictor matrix
-because it is the outcome to be predicted. The remaining eight clinical
-variables were retained as predictors. Since the dataset contains no
-variables derived from `lpsa`, no additional exclusions were required.
-This prevents target leakage and ensures a fair comparison among the
-regression models.
+The response variable, `lpsa`, was excluded from the predictor matrix because
+it is the outcome to be predicted. The remaining eight clinical variables were
+retained as predictors. Since the dataset contains no variables derived from
+`lpsa`, no additional exclusions were required. This prevents target leakage
+and ensures a fair comparison among the regression models.
 
 ## 1B. Split and train-only preprocessing
 
@@ -304,7 +303,7 @@ foldid <- make_foldid(nrow(x_train), k = 5L, seed = seeds$cv)
 - Seed `split` for 80/20 split: 240206
 - Seed `cv` for K-fold split: 240306
 
-### 2. Train/Test Split
+### 2. Train/Test split
 
 The dataset of 97 observations was partitioned into:
 
@@ -314,30 +313,27 @@ The dataset of 97 observations was partitioned into:
 ### 3. Feature Scaling Rule
 
 Continuous predictor variables were centered and scaled using the helper
-functions `fit_scaler()` and `apply_scaler()`. The scaling parameters
-were estimated **only from the training data** in `fit_scaler()` and
-then applied unchanged to both the training and test sets by
-`apply_scaler()`.
+functions `fit_scaler()` and `apply_scaler()`. The scaling parameters were
+estimated **only from the training data** in `fit_scaler()` and then applied
+unchanged to both the training and test sets by `apply_scaler()`.
 
 Specifically, each predictor was transformed as
-
-$$x_{\text{scaled}}
-=
-\frac{x-\bar{x}_{\text{train}}}
-{\sqrt{\frac{1}{n_{\text{train}}}\sum_{i=1}^{n_{\text{train}}}(x_i-\bar{x}_{\text{train}})^2}},$$
-
-where $\bar{x}_{\text{train}}$ is the mean of the predictor in the
-training set, and the denominator is the population standard deviation
-computed from the training observations. Using the same scaling
-parameters for the test set prevents information leakage from the
-holdout data.
+$$
+x_{\text{scaled}} = 
+\frac{x - \bar{x}_{\text{train}}}
+{\sqrt{\frac{1}{n_{\text{train}}} \sum_{i=1}^{n_{\text{train}}} (x_i - \bar{x}_{\text{train}})^2}},
+$$
+where \(\bar{x}_{\text{train}}\) is the mean of the predictor in the training
+set, and the denominator is the population standard deviation computed from
+the training observations. Using the same scaling parameters for the test set
+prevents information leakage from the holdout data.
 
 ### 4. Five-Fold Assignment Rule
 
 A single, immutable five-fold cross-validation assignment vector
 (`foldid`) was generated on the 77 training observations using the
 designated `cv` random seed. To ensure fair and controlled comparisons,
-this exact same fold assignment was reused across all models evaluated:
+this exact same fold assignment was reused across all models evaluated
 
 - Ridge Regression
 - Lasso Regression
@@ -346,6 +342,7 @@ this exact same fold assignment was reused across all models evaluated:
 
 ### 5. Missing-Value Plan
 
+**TODO:** add plan
 There are no missing values in the dataset
 
 ## 1C. Training-data exploration
@@ -388,11 +385,12 @@ ggplot(heatmap_df, aes(Var1, Var2, fill = value)) +
 
 ## One possible anomaly or influential observation
 
-boxplot(analysis_data[train_id, ], 
-        las = 2, 
-        main = "Predictor Distributions (All Labels Visible)",
-        col = "lightgray", 
-        outchar = TRUE)
+boxplot(analysis_data[train_id, ],
+  las = 2,
+  main = "Predictor Distributions (All Labels Visible)",
+  col = "lightgray",
+  outchar = TRUE
+)
 
 ## One pair or group of predictors for which multicollinearity may matter
 
@@ -407,6 +405,15 @@ observations to avoid information leakage from the holdout set.
 
 ### Response distribution
 
+```{r training-eda, eval=FALSE}
+summary(y_train)
+sd(y_train)
+
+hist(y_train)
+qqnorm(y_train)
+qqline(y_train)
+```
+
 The response variable (`lpsa`) is approximately symmetric, with the mean
 close to the median. Most observations are concentrated between 1.5 and
 3.5, while only a few observations appear in the tails. The histogram
@@ -415,6 +422,30 @@ reasonable, although slight departures from the reference line are
 present in the upper tail.
 
 ### One correlation table or focused relationship plot
+
+```{r training-eda, eval=FALSE}
+cor_matrix <- cor(analysis_data[train_id, ])
+
+heatmap_df <- expand.grid(
+  Var1 = rownames(cor_matrix),
+  Var2 = colnames(cor_matrix)
+)
+
+heatmap_df$value <- c(cor_matrix)
+
+ggplot(heatmap_df, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = round(value, 2)), size = 3) +
+  scale_fill_gradient2(
+    low = "blue",
+    mid = "white",
+    high = "red",
+    midpoint = 0,
+    limits = c(-1, 1)
+  ) +
+  coord_fixed() +
+  theme_minimal()
+```
 
 The correlation heatmap shows that **lcavol** has the strongest positive
 correlation with the response (`r = 0.75`), indicating that tumor volume
@@ -425,6 +456,10 @@ relatively weak marginal relationships with the response.
 
 ### One possible anomaly or influential observation
 
+```{r training-eda, eval=FALSE}
+boxplot(analysis_data[train_id, ])
+```
+
 The boxplots identify several potential outliers, particularly for `age`
 and `pgg45`, with `pgg45` exhibiting the greatest variability among the
 predictors. These observations may have a greater influence on the
@@ -434,6 +469,9 @@ retained and their influence will be assessed using formal regression
 diagnostics in the OLS analysis.
 
 ### One pair or group of predictors for which multicollinearity may matter
+
+```{r training-eda, eval=FALSE}
+```
 
 The strongest correlations among the predictors are observed between
 `gleason` and `pgg45` (`r = 0.76`), `lcavol` and `lcp` (`r = 0.73`),
@@ -449,97 +487,109 @@ coefficient stability and variable selection.
 Based on the exploratory analysis, the following question will guide the
 remaining analysis:
 
-> **Can ridge regression reduce the instability caused by
+> Can ridge regression reduce the instability caused by
 > multicollinearity, and can lasso identify a smaller subset of
-> predictors while maintaining comparable predictive performance?**
+> predictors while maintaining comparable predictive performance?
 
 # Problem 2. OLS, ridge, and lasso
 
 ## 2A. OLS baseline
 
 ```{r ols, eval=FALSE}
-x_train_df <- as_tibble(x_train)
-x_train_df$lpsa <- y_train
-m1 <- lm(lpsa  ~ .,data = x_train_df)
-model_coefs <- tidy(m1, conf.int = TRUE )
-print(model_coefs)
+# Fit OLS on x_train and y_train. Do not access y_test here.
+train_df <- as_tibble(x_train)
+train_df$lpsa <- y_train
 
-train_preds <- predict(m1, newdata =  x_train_df)
-train_mse <- mean((x_train_df$lpsa - train_preds)^2)
-train_rmse <-sqrt(train_mse)
+ols_model <- lm(lpsa ~ ., data = train_df)
+ols_coefs <- tidy(ols_model, conf.int = TRUE)
+print(ols_coefs)
+
+train_preds <- predict(ols_model, newdata = train_df)
+train_mse <- mean((train_df$lpsa - train_preds)^2)
+train_rmse <- sqrt(train_mse)
+
 cat("\n--- Training Error ---\n")
 cat("Training MSE :", round(train_mse, 5), "\n")
 cat("Training RMSE:", round(train_rmse, 5), "\n")
-cv_mses <- numeric(5)
-for(i in 1:5)
-{
-  fold_train <- x_train_df[foldid != i, ]
-  fold_val <- x_train_df[foldid == i, ]
-  model <-lm(lpsa  ~ .,data = fold_train)
-  fold_preds <- predict(model, newdata =  fold_val)
-  cv_mses[i] <-  mean((fold_val$lpsa - fold_preds)^2)
-  log_message <- sprintf("Fold %d completed | Validation MSE: %.4f\n", i,cv_mses[i])
+
+cv_mse_scores <- numeric(5)
+
+for (i in 1:5) {
+  fold_train_df <- train_df[foldid != i, ]
+  fold_val_df <- train_df[foldid == i, ]
+
+  fold_model <- lm(lpsa ~ ., data = fold_train_df)
+  fold_preds <- predict(fold_model, newdata = fold_val_df)
+
+  cv_mse_scores[i] <- mean((fold_val_df$lpsa - fold_preds)^2)
+
+  log_message <- sprintf("Fold %d completed | Validation MSE: %.4f\n", i, cv_mse_scores[i])
   cat(log_message)
-  print(tidy(model, conf.int = TRUE ))
-  print(plot_model_result(model,paste('fold',i)))
+
+  print(tidy(fold_model, conf.int = TRUE))
+  print(plot_model_result(fold_model, paste("fold", i)))
 }
-cv_mse_mean <- mean(cv_mses)
-cv_rmse_mean <- mean(sqrt(cv_mses))
+
+cv_mse_mean <- mean(cv_mse_scores)
+cv_rmse_mean <- mean(sqrt(cv_mse_scores))
+
 cat("\n--- CV Error ---\n")
 cat("CV MSE :", round(cv_mse_mean, 5), "\n")
 cat("CV RMSE:", round(cv_rmse_mean, 5), "\n")
-print(plot_model_result(m1,'model'))
 
-model_result = augment(model)
+model_result <- augment(model)
 qqnorm(model_result$.resid)
 qqline(model_result$.resid)
-# Fit OLS on x_train and y_train. Do not access y_test here.
 ```
 
 ## 2B. Ridge
 
 ```{r ridge, eval=FALSE}
-model_ridge <- fit_cv_glmnet(x_train,y_train,alpha= 0, foldid = foldid)
-plot(model_ridge)
-cat(sprintf("lambda.min: %.5f\n", model_ridge$lambda.min))
-cat(sprintf("lambda.1se: %.5f\n\n", model_ridge$lambda.1se))
+# Report lambda.min, lambda.1se, paths, coefficients, and CV evidence.
+ridge_model <- fit_cv_glmnet(x_train, y_train, alpha = 0, foldid = foldid)
+plot(ridge_model)
 
-min_id <- which(model_ridge$lambda == model_ridge$lambda.min)
-se1_id <- which(model_ridge$lambda == model_ridge$lambda.1se)
-cat(sprintf("cvm.min: %.5f\n", model_ridge$cvm[min_id]))
-cat(sprintf("cvm.1se: %.5f\n\n", model_ridge$cvm[se1_id]))
+cat(sprintf("lambda.min: %.5f\n", ridge_model$lambda.min))
+cat(sprintf("lambda.1se: %.5f\n\n", ridge_model$lambda.1se))
 
-plot(model_ridge$glmnet.fit, xvar ='lambda', label = TRUE )#note the plot automatically turn into the plot.glmnet function
+min_id <- which(ridge_model$lambda == ridge_model$lambda.min)
+se1_id <- which(ridge_model$lambda == ridge_model$lambda.1se)
+
+cat(sprintf("cvm.min: %.5f\n", ridge_model$cvm[min_id]))
+cat(sprintf("cvm.1se: %.5f\n\n", ridge_model$cvm[se1_id]))
+
+# the plot automatically turn into the plot.glmnet function
+plot(ridge_model$glmnet.fit, xvar = "lambda", label = TRUE)
+
 title("Ridge Coefficient Paths", line = 2.5)
 
-model_result <-  predict(model_ridge, newx = x_train,  s= "lambda.min")
-ridge_residual <- y_train - model_result 
+model_result <- predict(model_ridge, newx = x_train, s = "lambda.min")
+ridge_residual <- y_train - model_result
 
 # Use fit_cv_glmnet(..., alpha = 0, foldid = foldid).
-# Report lambda.min, lambda.1se, paths, coefficients, and CV evidence.
 ```
 
 ## 2C. Lasso
 
 ```{r lasso, eval=FALSE}
-model_lasso <- fit_cv_glmnet(x_train,y_train,alpha= 1, foldid = foldid)
+model_lasso <- fit_cv_glmnet(x_train, y_train, alpha = 1, foldid = foldid)
 plot(model_lasso)
 cat(sprintf("lambda.min: %.5f\n", model_lasso$lambda.min))
 cat(sprintf("lambda.1se: %.5f\n\n", model_lasso$lambda.1se))
 
 cat("--- Nonzero Predictors (lambda.min) ---\n")
-coef_min <- coef(model_lasso, s ='lambda.min')
-print(coef_min[coef_min[,1]!= 0])# mask which is 0 on the coefficient column
+coef_min <- coef(model_lasso, s = "lambda.min")
+print(coef_min[coef_min[, 1] != 0]) # mask which is 0 on the coefficient column
 cat("\n--- Nonzero Predictors (lambda.1se) ---\n")
-coef_1se <- coef(model_lasso, s ='lambda.1se')
-print(coef_1se[coef_1se[,1]!=0])
+coef_1se <- coef(model_lasso, s = "lambda.1se")
+print(coef_1se[coef_1se[, 1] != 0])
 
 min_id <- which(model_lasso$lambda == model_lasso$lambda.min)
 se1_id <- which(model_lasso$lambda == model_lasso$lambda.1se)
 cat(sprintf("cvm.min: %.5f\n", model_lasso$cvm[min_id]))
 cat(sprintf("cvm.1se: %.5f\n\n", model_lasso$cvm[se1_id]))
 
-plot(model_lasso$glmnet.fit, xvar ='lambda', label = TRUE )
+plot(model_lasso$glmnet.fit, xvar = "lambda", label = TRUE)
 title("Lasso Coefficient Paths", line = 2.5)
 # Use fit_cv_glmnet(..., alpha = 1, foldid = foldid).
 # Report lambda.min, lambda.1se, paths, and nonzero predictors.
@@ -610,7 +660,7 @@ $$\hat{b}_\lambda^{\text{ridge}} = (G + \lambda I_p)^{-1} z$$
 n <- nrow(x_train)
 
 # Compute G and z
-G <- (1/n) * t(x_train) %*% x_train
+G <- (1 / n) * t(x_train) %*% x_train
 
 # Compute the eigenvalues of G
 evals_G <- eigen(G)$values
