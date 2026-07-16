@@ -15,31 +15,33 @@ output:
 bibliography: references.bib
 link-citations: true
 params:
-  group_number: 0
+  group_number: 6
 fontsize: 11pt
 geometry: margin=1in
 ---
 
+```{=html}
 <!--
 Copy this template into your group submission folder, rename it
 GroupXX_ProjectQuiz1.Rmd, place references.bib beside it, and set the group
 number parameter before rendering. Remove instructional comments from the
 final report.
 -->
+```
 
-# Authorship and contribution statement {-}
+# Authorship and contribution statement {.unnumbered}
 
 We confirm that every group member can explain the submitted analysis. AI use is reported in `GroupXX_AI_Log.csv`, and the group checked every AI-assisted item used in this report.
 
-| Student | ID | Main contributions | Verification performed |
-|---|---|---|---|
-| [Name] | [ID] | [Work] | [Check] |
+| Student | ID   | Main contributions | Verification performed |
+|---------|------|--------------------|------------------------|
+| [Name]  | [ID] | [Work]             | [Check]                |
 
-# Abstract {-}
+# Abstract {.unnumbered}
 
 *Maximum 150 words: prediction problem, methods, main evidence, and recommendation.*
 
-# Reproducible setup {-}
+# Reproducible setup {.unnumbered}
 
 ```{r setup, message=FALSE, warning=FALSE}
 required_packages <- c("tidyverse", "glmnet", "broom", "knitr")
@@ -68,7 +70,7 @@ seeds <- list(
 )
 ```
 
-## Shared helper functions {-}
+## Shared helper functions {.unnumbered}
 
 ```{r helpers}
 find_exam_data <- function(filename) {
@@ -221,9 +223,76 @@ foldid <- make_foldid(nrow(x_train), k = 5L, seed = seeds$cv)
 
 ## 1C. Training-data exploration
 
+## 1C. Training-data exploration
+
 ```{r training-eda, eval=FALSE}
 # Use analysis_data[train_id, ] only. Add focused plots and summaries.
+
+## Response distribution
+
+summary(y_train)
+sd(y_train)
+
+hist(y_train)
+qqnorm(y_train)
+qqline(y_train)
+
+## Relationship exploration
+
+cor_matrix <- cor(analysis_data[train_id, ])
+
+heatmap_df <- expand.grid(
+  Var1 = rownames(cor_matrix),
+  Var2 = colnames(cor_matrix)
+)
+
+heatmap_df$value <- c(cor_matrix)
+
+ggplot(heatmap_df, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = round(value, 2)), size = 3) +
+  scale_fill_gradient2(
+    low = "blue",
+    mid = "white",
+    high = "red",
+    midpoint = 0,
+    limits = c(-1, 1)
+  ) +
+  coord_fixed() +
+  theme_minimal()
+
+## One possible anomaly or influential observation
+
+boxplot(analysis_data[train_id, ])
+
+## One pair or group of predictors for which multicollinearity may matter
+
+# (See correlation heatmap.)
 ```
+
+The exploratory analysis in this section uses only the training observations to avoid information leakage from the holdout set.
+
+### Response distribution
+
+The response variable (`lpsa`) is approximately symmetric, with the mean close to the median. Most observations are concentrated between 1.5 and 3.5, while only a few observations appear in the tails. The histogram and Q–Q plot indicate that the Gaussian assumption is broadly reasonable, although slight departures from the reference line are present in the upper tail.
+
+### One correlation table or focused relationship plot
+
+The correlation heatmap shows that **lcavol** has the strongest positive correlation with the response (`r = 0.75`), indicating that tumor volume is the most informative individual predictor of PSA level. Moderate positive correlations are also observed for **lcp** (`r = 0.59`) and **svi** (`r = 0.58`), whereas `age`, `lbph`, and `lweight` exhibit relatively weak marginal relationships with the response.
+
+### One possible anomaly or influential observation
+
+The boxplots identify several potential outliers, particularly for `age` and `pgg45`, with `pgg45` exhibiting the greatest variability among the predictors. These observations may have a greater influence on the fitted regression model than typical observations. However, because there is no evidence that they arise from data entry errors, they are retained and their influence will be assessed using formal regression diagnostics in the OLS analysis.
+
+### One pair or group of predictors for which multicollinearity may matter
+
+The strongest correlations among the predictors are observed between `gleason` and `pgg45` (`r = 0.76`), `lcavol` and `lcp` (`r = 0.73`), `lcp` and `svi` (`r = 0.67`), and `lcavol` and `svi` (`r = 0.59`). These predictor pairs appear to contain overlapping information, suggesting that multicollinearity may be present. Consequently, ordinary least squares coefficient estimates may become unstable and exhibit inflated variance, motivating the use of ridge and lasso regression to improve coefficient stability and variable selection.
+
+### Question for regularized models
+
+Based on the exploratory analysis, the following question will guide the remaining analysis:
+
+> **Can ridge regression reduce the instability caused by multicollinearity, and can lasso identify a smaller subset of predictors while maintaining comparable predictive performance?**
 
 *Interpret multicollinearity, one anomaly, and the question regularization will address.*
 
@@ -293,7 +362,7 @@ foldid <- make_foldid(nrow(x_train), k = 5L, seed = seeds$cv)
 **Research direction:** [weight decay / sparse weights / pruning / dropout]
 
 | Claim | Exact primary source and locator | What it establishes | What it does not establish |
-|---|---|---|---|
+|------------------|------------------|------------------|------------------|
 | [Claim] | [Citation, section/page/equation] | [Support] | [Boundary] |
 
 ## 4B. Elastic net on original predictors
@@ -339,7 +408,7 @@ M <- 200L
 
 ## 5A. Reproduction record
 
-```text
+``` text
 1. Open a clean R session.
 2. [Exact commands and folder layout.]
 3. Render GroupXX_ProjectQuiz1.Rmd.
@@ -352,10 +421,10 @@ M <- 200L
 ## 5C. AI verification record
 
 | AI-assisted item | How it was checked | Evidence | Modification or rejection |
-|---|---|---|---|
+|------------------|------------------|------------------|------------------|
 | [Item] | [Method] | [Test/source/output] | [Decision] |
 
-# Preflight and session information {-}
+# Preflight and session information {.unnumbered}
 
 ```{r preflight, eval=FALSE}
 # Add every object required to reproduce the final table and figures.
