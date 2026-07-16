@@ -4,14 +4,14 @@ subtitle: "Ridge, Lasso, and Regularization for Neural Features"
 author: "Group 06: [names and student IDs]"
 date: "`r format(Sys.Date(), '%Y-%m-%d')`"
 output:
+  html_document:
+    toc: true
+    toc_depth: 3
   pdf_document:
     toc: true
     number_sections: true
     latex_engine: xelatex
     fig_crop: false
-  html_document:
-    toc: true
-    toc_depth: 3
 bibliography: references.bib
 link-citations: true
 params:
@@ -319,7 +319,7 @@ unchanged to both the training and test sets by `apply_scaler()`.
 
 Specifically, each predictor was transformed as
 $$
-x_{\text{scaled}} = 
+x_{\text{scaled}} =
 \frac{x - \bar{x}_{\text{train}}}
 {\sqrt{\frac{1}{n_{\text{train}}} \sum_{i=1}^{n_{\text{train}}} (x_i - \bar{x}_{\text{train}})^2}},
 $$
@@ -537,16 +537,18 @@ cat("\n--- CV Error ---\n")
 cat("CV MSE :", round(cv_mse_mean, 5), "\n")
 cat("CV RMSE:", round(cv_rmse_mean, 5), "\n")
 
-model_result <- augment(model)
-qqnorm(model_result$.resid)
-qqline(model_result$.resid)
+ols_result <- augment(ols_model)
+qqnorm(ols_result$.resid)
+qqline(ols_result$.resid)
 ```
 
 ## 2B. Ridge
 
 ```{r ridge, eval=FALSE}
+# Use fit_cv_glmnet(..., alpha = 0, foldid = foldid).
 # Report lambda.min, lambda.1se, paths, coefficients, and CV evidence.
 ridge_model <- fit_cv_glmnet(x_train, y_train, alpha = 0, foldid = foldid)
+
 plot(ridge_model)
 
 cat(sprintf("lambda.min: %.5f\n", ridge_model$lambda.min))
@@ -554,7 +556,6 @@ cat(sprintf("lambda.1se: %.5f\n\n", ridge_model$lambda.1se))
 
 min_id <- which(ridge_model$lambda == ridge_model$lambda.min)
 se1_id <- which(ridge_model$lambda == ridge_model$lambda.1se)
-
 cat(sprintf("cvm.min: %.5f\n", ridge_model$cvm[min_id]))
 cat(sprintf("cvm.1se: %.5f\n\n", ridge_model$cvm[se1_id]))
 
@@ -563,37 +564,40 @@ plot(ridge_model$glmnet.fit, xvar = "lambda", label = TRUE)
 
 title("Ridge Coefficient Paths", line = 2.5)
 
-model_result <- predict(model_ridge, newx = x_train, s = "lambda.min")
-ridge_residual <- y_train - model_result
-
-# Use fit_cv_glmnet(..., alpha = 0, foldid = foldid).
+ridge_result <- predict(ridge_model, newx = x_train, s = "lambda.min")
+ridge_residual <- y_train - ridge_result
 ```
+**TODO:** explanation
 
 ## 2C. Lasso
 
 ```{r lasso, eval=FALSE}
-model_lasso <- fit_cv_glmnet(x_train, y_train, alpha = 1, foldid = foldid)
-plot(model_lasso)
-cat(sprintf("lambda.min: %.5f\n", model_lasso$lambda.min))
-cat(sprintf("lambda.1se: %.5f\n\n", model_lasso$lambda.1se))
-
-cat("--- Nonzero Predictors (lambda.min) ---\n")
-coef_min <- coef(model_lasso, s = "lambda.min")
-print(coef_min[coef_min[, 1] != 0]) # mask which is 0 on the coefficient column
-cat("\n--- Nonzero Predictors (lambda.1se) ---\n")
-coef_1se <- coef(model_lasso, s = "lambda.1se")
-print(coef_1se[coef_1se[, 1] != 0])
-
-min_id <- which(model_lasso$lambda == model_lasso$lambda.min)
-se1_id <- which(model_lasso$lambda == model_lasso$lambda.1se)
-cat(sprintf("cvm.min: %.5f\n", model_lasso$cvm[min_id]))
-cat(sprintf("cvm.1se: %.5f\n\n", model_lasso$cvm[se1_id]))
-
-plot(model_lasso$glmnet.fit, xvar = "lambda", label = TRUE)
-title("Lasso Coefficient Paths", line = 2.5)
 # Use fit_cv_glmnet(..., alpha = 1, foldid = foldid).
 # Report lambda.min, lambda.1se, paths, and nonzero predictors.
+lasso_model <- fit_cv_glmnet(x_train, y_train, alpha = 1, foldid = foldid)
+
+plot(lasso_model)
+
+cat(sprintf("lambda.min: %.5f\n", lasso_model$lambda.min))
+cat(sprintf("lambda.1se: %.5f\n\n", lasso_model$lambda.1se))
+
+cat("--- Nonzero Predictors (lambda.min) ---\n")
+coef_min <- coef(lasso_model, s = "lambda.min")
+print(coef_min[coef_min[, 1] != 0]) # mask 0 on the coefficient column
+cat("\n--- Nonzero Predictors (lambda.1se) ---\n")
+coef_1se <- coef(lasso_model, s = "lambda.1se")
+print(coef_1se[coef_1se[, 1] != 0])
+
+min_id <- which(lasso_model$lambda == lasso_model$lambda.min)
+se1_id <- which(lasso_model$lambda == lasso_model$lambda.1se)
+
+cat(sprintf("cvm.min: %.5f\n", lasso_model$cvm[min_id]))
+cat(sprintf("cvm.1se: %.5f\n\n", lasso_model$cvm[se1_id]))
+
+plot(lasso_model$glmnet.fit, xvar = "lambda", label = TRUE)
+title("Lasso Coefficient Paths", line = 2.5)
 ```
+**TODO:** explanation
 
 ## 2D. Training-based comparison and locked core model
 
@@ -656,7 +660,6 @@ $$\hat{b}_\lambda^{\text{ridge}} = (G + \lambda I_p)^{-1} z$$
 # Use x_train and the fitted ridge lambda.min.
 # safe_condition_numbers(x_train, lambda = ...)
 
-# Assume x_train, y_train, and lambda.min from a previous cv.glmnet are loaded
 n <- nrow(x_train)
 
 # Compute G and z
@@ -671,50 +674,42 @@ mu_min <- min(evals_G)
 kappa_G <- ifelse(zapsmall(mu_min) == 0, Inf, mu_max / mu_min)
 
 # Compute kappa_2(G + lambda*I)
-lambda_min <- ... # Insert your extracted lambda.min
+lambda_min <- ridge_model$lambda.min
 kappa_ridge <- (mu_max + lambda_min) / (mu_min + lambda_min)
 
 cat("Condition number of G (kappa_G):", kappa_G, "\n")
 cat("Condition number of Ridge (kappa_ridge):", kappa_ridge, "\n")
 ```
 
-*Explanation.* - *Numerically:* Condition number measures how sensitive
-the solution is to small changes or errors in the data. An infinite or
-very large condition number means $G$ is singular or ill-conditioned,
-making matrix inversion unstable or impossible. By adding a positive
-constant $\lambda$ to the diagonal elements, we strictly bound the
-smallest eigenvalue away from zero. This reduces the condition number,
-stabilizing the matrix inversion and computational precision.
-Numerically:Without Ridge: If $X$ has highly correlated columns,
-$\mu_{\min}$ is very close to $0$, causing $\kappa_2(G)$ to blow up to
-infinity. This makes the matrix inversion highly unstable and sensitive
-to floating-point errors. With Ridge: Adding $\lambda > 0$ to the
-diagonal ensures the smallest eigenvalue is strictly bounded away from
-zero ($\mu_{\min} + \lambda \ge \lambda$). This dramatically decreases
-the condition number, stabilizing the matrix inversion and making the
-numerical computation robust.
+*Explanation.*
+- *Numerically:*
+  - Condition number $\kappa_2(G)$ measures how sensitive the solution is to
+small changes or errors in the data.
+  - If $X$ has highly correlated columns, $\mu_{\min}$ is very close to $0$,
+causing $\kappa_2(G)$ to blow up to infinity. This makes the matrix inversion
+highly unstable and sensitive to floating-point errors.
+  - In Ridge regression, by adding $\lambda > 0$ to the diagonal elements, we strictly
+bound the smallest eigenvalue away from zero.
+  - This reduces the condition number, stabilizing the matrix inversion and computational precision.
 
-- *Geometrically:* The matrix $G$ represents the curvature of the
-  unpenalized least-squares loss surface. If $G$ has a zero (or
-  near-zero) eigenvalue, the loss surface forms a flat "valley" in that
-  principal direction, meaning there is no unique bottom (minimizer).
-  Adding $\lambda I_p$ adds isotropic (uniform spherical) curvature to
-  the loss function. Geometrically, this bends those flat valleys upward
-  into a strictly convex, bowl-shaped surface, ensuring a single,
-  globally unique minimum exists. Geometrically: Without Ridge (OLS):
-  The contours of the least squares loss function can form long, narrow
-  ellipses (or flat valleys if perfectly collinear), indicating high
-  uncertainty in certain directions. With Ridge: Adding the $L_2$
-  penalty $\frac{\lambda}{2}\Vert{}b\Vert{}_2^2$ is equivalent to
-  shrinking the solution towards the origin. Geometrically, the contours
-  of $(G + \lambda I_p)$ become more circular (spherical) compared to
-  $G$. The feature space is restricted, reducing variance along the
-  directions of smallest variance (the smallest eigenvalues).
+- *Geometrically:*
+  - The matrix $G$ represents the curvature of the unpenalized least-squares
+loss surface. If $G$ has a zero (or near-zero) eigenvalue, the loss surface
+forms a flat valley in that principal direction, meaning there is no unique
+bottom (minimizer).
+  - Adding $\lambda I_p$ adds uniform spherical curvature to
+the loss function. This bends those flat valleys upward into a strictly convex,
+bowl-shaped surface, ensuring a single, globally unique minimum exists.
+  - From a top-down perspective, the contours of the least squares loss function
+can form long and narrow ellipses, indicating high uncertainty in certain directions.
+  - Adding a constraint pull the optimal coefficients toward the origin. It
+transforms the elliptical contours of $G$ into a more circular shape.
+  - This stabilizes the model by shrinking coefficients in the directions where
+the training data has the least variance (the smallest eigenvalues).
 
 ## 3B. Lasso optimality and soft thresholding
 
-*Derive the zero/nonzero optimality conditions and the
-orthonormal-design formula.*
+*Derive the zero/nonzero optimality conditions and the orthonormal-design formula.*
 
 Let
 $X \in \mathbb{R}^{n \times p}, y \in \mathbb{R}^n, b \in \mathbb{R}^p$
@@ -784,31 +779,34 @@ $\hat{b}_j$: $$\hat{b}_j = \begin{cases}
   z_j + \lambda & \text{if } z_j < -\lambda
 \end{cases}$$
 
-**Soft-thresholding operator under orthonormal design** Assume that
+The uniqueness is guaranteed because the objective function is strictly convex.
+Under the orthogonal design, the variables are perfectly independent,
+forming a strictly convex "bowl" shape. Even with the sharp point added
+by the $L_1$ penalty, the strict convexity mathematically ensures there
+is exactly one absolute global minimum.
+
+**Soft-thresholding operator under orthonormal design**
+Assume that
 $\frac{1}{n} X^T X = I_p$. Let $z = \frac{1}{n} X^T y$. Then the Lasso
 minimizer of $R_\lambda (b)$ is *unique* and has coordinates
 $$\hat{b}_j = S_\lambda (z_j), \quad \text{where the soft-thresholding function is } S_\lambda (z) = \text{sgn}(z) (|z| - \lambda)_+$$
 where $(u)_+ = \max(u, 0)$.
 
-**Uniqueness.** The uniqueness is guaranteed because the objective
-function is strictly convex. Under the orthogonal design
-($\frac{1}{n} X^T X = I_p$), the variables are perfectly independent,
-forming a strictly convex "bowl" shape. Even with the sharp point added
-by the $L_1$ penalty, the strict convexity mathematically ensures there
-is exactly one absolute global minimum.
 
-**Intuition.** Under $\frac{1}{n} X^T X = I_p$, we can compare the
-closed-form estimators - **Ridge:**
+**Why lasso can produce exact zeros while ridge generally does not.**
+Under $\frac{1}{n} X^T X = I_p$, we can compare the closed-form estimators
+- **Ridge:**
 $\hat{b}_j^{\text{Ridge}} = (1 + 2 \lambda)^{-1} z_j$ (proportional
 shrinkage). It divides the coefficient by a constant. The coefficients
 get extremely small, but they never become zero. The optimality
 condition means $b_j$ only equals exactly zero if $z_j$ is exactly zero
-(which is highly improbable with real data). - **Lasso:**
+(which is highly improbable with real data).
+- **Lasso:**
 $\hat{b}_j^{\text{Lasso}} = \text{sgn}(z_j) (|z_j| - \lambda)_+$
 (absolute shrinkage). It subtracts a constant from the magnitude. If a
 coefficient is originally small, the penalty forces it to exactly zero.
 Case 3 shows that Lasso maps a whole range of values to exactly zero,
-creating sparsity. This gives Lasso its *feature selection* capability.
+creating sparsity. This gives Lasso its **feature selection** capability.
 
 ## 3C. Connect algebra to evidence
 
