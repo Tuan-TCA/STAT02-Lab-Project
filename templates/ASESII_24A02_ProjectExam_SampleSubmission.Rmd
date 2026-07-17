@@ -30,7 +30,7 @@ AI use is reported in `Group06_AI_Log.csv`, and the group checked every
 AI-assisted item used in this report.
 
 | Student | ID | Main contributions | Verification performed |
-|---|---:|---|---|
+|------------------|------------------:|------------------|------------------|
 | Le Dat Phuc An | 24125052 | Sections 1, 2A, 2B, 5A, and 5B. | Verified Sections 2D, 3B, and 4C by reproducing results and reviewing the report. |
 | Pham Nguyen Minh Quan | 24125041 | Sections 2D, 2E, 3A, 3B, and 4B. | Verified Sections 1, 2A, 5A, and 5B by checking methodology, code, and documentation. |
 | Tran Canh Anh Tuan | 24125048 | Sections 2A,2B,3C, 4A, 4C, 4E, 5A. | Verified Sections 2B, 2C, and 4B by reviewing implementation and numerical results. |
@@ -1700,54 +1700,52 @@ estimates while retaining all predictors.
 
 **Research Question:**
 
-*How does the methodological mechanism of* $L_2$ regularization - which
-stabilizes models by damping parameter variance along low-eigenvalue
-directions - diverge from algorithmic weight decay when training deep
-neural networks with adaptive gradient optimizers?
+How does $L_2$ regularization reduce model complexity in neural
+networks, and under what conditions is it mathematically equivalent to
+weight decay during training?
 
-**Context & Methodological Bridge**
-
-In classical linear models and neural networks trained with standard
-Stochastic Gradient Descent (SGD), adding an $L_2$ penalty to the loss
-function and applying algorithmic weight decay are mathematically
-identical operations. When minimizing a loss function
-$\mathcal{L}(w) + \frac{\lambda}{2} \Vert{}w\Vert{}_2^2$, the derivative
-of the penalty introduces a $+\lambda w$ term to the gradient. Inside
-the standard SGD update rule, this factors into a decay multiplier:
-$w_{t+1} = (1 - \alpha\lambda)w_t - \alpha \nabla \mathcal{L}(w_t)$.
-
-However, in modern deep neural networks, models are primarily trained
-using adaptive optimizers like Adam. Loshchilov and Hutter (2019)
-demonstrated that placing the $L_2$ penalty inside the loss function
-causes it to be divided by Adam's adaptive gradient scaling factor. This
-neutralizes the penalty for weights with large gradients and
-hyper-inflates it for sparse gradients. To restore the classical,
-eigenvalue-damping properties of $L_2$ regularization in deep learning,
-weight decay must be mathematically decoupled from the loss gradient
-(AdamW).
+The evidence in the source map answers the research question by showing
+that integrating an $L_2$ penalty into a neural network's objective
+function restricts model capacity by discouraging large parameter values
+and favoring lower-complexity, minimum-norm solutions (**C5-C7**). This
+reduces overfitting and generally improves generalization by preventing
+the model from relying excessively on any individual weight. The source
+map also clarifies how this theoretical penalty translates into the
+algorithmic process of weight decay during optimization. For standard
+stochastic gradient descent, weight decay is mathematically equivalent
+to minimizing an objective with an $L_2$ penalty after appropriate
+learning-rate rescaling (**C1**). However, this equivalence breaks down
+for adaptive optimizers such as Adam because parameter-specific gradient
+scaling changes the effective regularization applied to each weight
+(**C2**). Although an equivalent weighted $L_2$ interpretation exists
+under a fixed preconditioner (**C3**), practical implementations instead
+use decoupled weight decay (AdamW), which empirically improves
+generalization and simplifies hyperparameter tuning (**C4**). Overall,
+the literature shows that $L_2$ regularization provides the theoretical
+mechanism for controlling model complexity, while weight decay is the
+optimization procedure whose relationship to that penalty depends on the
+choice of optimization algorithm.
 
 **Source Map**
 
-| Claim | Exact Source and Locator | What the Source Establishes | What it does not establish |
-|:-----------------|:-----------------|:-----------------|:-----------------|
-| **Proposition 1:** For SGD, weight decay is equivalent to $L_2$ regularization after learning-rate rescaling. | Loshchilov & Hutter (2019), Section 2, Proposition 1 | Proves the mathematical equivalence between SGD weight decay and $L_2$ regularization. | Does not extend this equivalence to adaptive optimizers. |
-| **Proposition 2:** For adaptive optimizers, weight decay is not equivalent to $L_2$ regularization. | Loshchilov & Hutter (2019), Section 2, Proposition 2 | Proves adaptive gradient scaling changes the effect of $L_2$ regularization, motivating AdamW. | Does not prove AdamW always performs better. |
-| **Proposition 3:** With a fixed preconditioner, weight decay corresponds to a weighted $L_2$ regularizer. | Loshchilov & Hutter (2019), Section 2, Proposition 3 | Derives the equivalent weighted regularizer under fixed preconditioning. | Does not apply directly to practical Adam with a changing preconditioner. |
-| **Empirical:** AdamW improves generalization and simplifies hyperparameter tuning. | Loshchilov & Hutter (2019), Sections 4.2–4.4, Figures 2–4 | Shows AdamW achieves lower test error and easier hyperparameter tuning than Adam. | Does not guarantee improvements across all models or datasets. |
-| **Theoretical:** Weight decay selects the minimum-norm solution, improving generalization in linear networks. | Krogh & Hertz (1991), Section 3, Eqs. (6)–(10) | Proves weight decay removes irrelevant weight components and favors the minimum-norm solution. | Does not prove the result for general non-linear networks. |
-| **Theoretical:** Weight decay reduces overfitting to noisy targets. | Krogh & Hertz (1991), Section 4, Eqs. (12)–(17) | Derives an optimal weight decay for noisy linear models and shows reduced generalization error. | Does not show the same optimum applies to deep neural networks. |
-| **Theoretical:** Weight decay can be extended to non-linear networks via local linearization. | Krogh & Hertz (1991), Section 5 | Argues that weight decay favors lower-complexity solutions in non-linear networks. | Does not provide a rigorous proof for arbitrary non-linear networks. |
-| **Empirical:** Weight decay lowers generalization and prediction error on NetTalk. | Krogh & Hertz (1991), Section 6, Figure 2 | Demonstrates improved performance with weight decay on the NetTalk benchmark. | Does not establish the same gains for modern architectures such as CNNs or Transformers. |
+| **ID** | **Claim** | **Exact Source and Locator** | **What the Source Establishes** | **What it does not establish** |
+|:-------------:|:--------------|:--------------|:--------------|:--------------|
+| **C1** | **Proposition 1:** For SGD, weight decay is equivalent to $L_2$ regularization after learning-rate rescaling. | Loshchilov & Hutter (2019), Section 2, Proposition 1 | Proves the mathematical equivalence between SGD weight decay and $L_2$ regularization. | Does not extend this equivalence to adaptive optimizers. |
+| **C2** | **Proposition 2:** For adaptive optimizers, weight decay is not equivalent to $L_2$ regularization. | Loshchilov & Hutter (2019), Section 2, Proposition 2 | Proves adaptive gradient scaling changes the effect of $L_2$ regularization, motivating AdamW. | Does not prove AdamW always performs better. |
+| **C3** | **Proposition 3:** With a fixed preconditioner, weight decay corresponds to a weighted $L_2$ regularizer. | Loshchilov & Hutter (2019), Section 2, Proposition 3 | Derives the equivalent weighted regularizer under fixed preconditioning. | Does not apply directly to practical Adam with a changing preconditioner. |
+| **C4** | **Empirical:** AdamW improves generalization and simplifies hyperparameter tuning. | Loshchilov & Hutter (2019), Sections 4.2--4.4, Figures 2--4 | Shows AdamW achieves lower test error and easier hyperparameter tuning than Adam. | Does not guarantee improvements across all models or datasets. |
+| **C5** | **Theoretical:** Weight decay selects the minimum-norm solution, improving generalization in linear networks. | Krogh & Hertz (1991), Section 3, Eqs. (6)--(10) | Proves weight decay removes irrelevant weight components and favors the minimum-norm solution. | Does not prove the result for general non-linear networks. |
+| **C6** | **Theoretical:** Weight decay reduces overfitting to noisy targets. | Krogh & Hertz (1991), Section 4, Eqs. (12)--(17) | Derives an optimal weight decay for noisy linear models and shows reduced generalization error. | Does not show the same optimum applies to deep neural networks. |
+| **C7** | **Theoretical:** Weight decay can be extended to non-linear networks via local linearization. | Krogh & Hertz (1991), Section 5 | Argues that weight decay favors lower-complexity solutions in non-linear networks. | Does not provide a rigorous proof for arbitrary non-linear networks. |
+| **C8** | **Empirical:** Weight decay lowers generalization and prediction error on NetTalk. | Krogh & Hertz (1991), Secti |  |  |
 
 **References**
 
-- Krogh, A., & Hertz, J. A. (1992). A simple weight decay can improve
-  generalization. In *Advances in Neural Information Processing Systems*
-  (Vol. 4, pp. 950-957).
+- Krogh, A., & Hertz, J. A. (1991) . A simple weight decay can improve
+  generalization [@krogh1991weightdecay].
 
 - Loshchilov, I., & Hutter, F. (2019). Decoupling weight decay from
-  gradient-based optimizers. In *International Conference on Learning
-  Representations (ICLR)*.
+  gradient-based optimizers [@loshchilov2019].
 
 ## 4B. Elastic net on original predictors
 
@@ -2261,31 +2259,89 @@ changed after viewing the holdout results.
 
 ## 4E. Deep-learning connection and limitations
 
-## 4E. Discussion
+### 1. Ridge penalty versus weight decay
 
-### 1. \(L_2\) penalty versus weight decay
+In neural networks, weight decay also encourages smaller weights by
+shrinking the parameters during optimization. When using standard
+gradient descent, weight decay is mathematically equivalent to adding an
+$L_2$ penalty to the loss function because every parameter is updated
+using the same global learning rate. The shrinkage introduced by weight
+decay is therefore identical to the shrinkage produced by the gradient
+of the $L_2$ penalty.
 
-In this experiment, only the **output weights** are optimized while the hidden-layer parameters remain fixed. Applying an \(L_2\) penalty to the output weights is therefore equivalent to **ridge regression**, which shrinks the learned coefficients to reduce overfitting. However, in fully trainable neural networks using adaptive optimizers such as Adam, adding an \(L_2\) penalty to the loss is generally **not equivalent** to weight decay because adaptive gradient scaling changes the effect of the regularization term. AdamW resolves this by decoupling weight decay from the gradient update [@loshchilov2019adamw].
+However, this equivalence does not always hold for adaptive optimizers
+such as Adam. Adam computes an individual adaptive learning rate for
+each parameter based on the history of its gradients. As a result, the
+gradient contribution from the $L_2$ penalty is also scaled differently
+for each weight, so the effective regularization varies across
+parameters. In contrast, weight decay shrinks each parameter directly,
+independently of the adaptive gradient scaling. Consequently, adding an
+$L_2$ penalty to the objective and applying weight decay during
+optimization are no longer mathematically identical. Optimizers such as
+AdamW decouple weight decay from the gradient update, restoring the
+intended behavior of uniform parameter shrinkage.
 
-### 2. Zero output weights do not create sparse hidden weights
+### 2. Zero output weights versus sparse input-to-hidden weights
 
-Each hidden feature is generated from fixed random input-to-hidden weights and remains unchanged throughout training. If an output weight becomes zero, the corresponding hidden feature no longer contributes to the prediction. However, the input-to-hidden weights that generate this feature remain unchanged because they are never optimized. Therefore, sparsity occurs only in the **output layer**, not in the hidden layer or the network structure.
+Each hidden neuron computes a nonlinear feature from the input, which is
+then passed to the output layer. The prediction can be written as
 
-### 3. Dropout is not the same as pruning
+$$\hat{y}=\sum_{m=1}^{M} w_m h_m(x),$$
 
-Dropout randomly masks a subset of hidden activations during each training iteration, with a new mask sampled for every mini-batch. During inference, all neurons remain active. In contrast, pruning permanently removes weights or neurons from the network. Therefore, dropout is a temporary regularization method, whereas pruning permanently changes the model architecture.
+where $h_m(x)$ is the output of the $m$-th hidden neuron and $w_m$ is
+its corresponding output weight.
+
+If Lasso shrinks an output weight $w_m$ to zero, the corresponding
+hidden feature contributes nothing to the prediction and is effectively
+removed from the scalar predictor.
+
+However, this does **not** create sparse input-to-hidden weights. The
+parameters defining the hidden feature, namely its input weights and
+biases, remain unchanged. The hidden neuron still computes the same
+feature; its output is simply multiplied by zero before reaching the
+prediction. Therefore, sparsity is created only in the **output-layer
+weights**, not in the **input-to-hidden connections**.
+
+### 3. Dropout versus permanent pruning
+
+Dropout randomly sets a subset of neuron activations to zero during each
+training iteration. The neurons that are masked change from one
+iteration to the next, so every neuron continues to participate in
+learning over the course of training. This randomness discourages
+co-adaptation between neurons and generally improves model
+generalization.
+
+Permanent pruning is fundamentally different. It removes selected
+weights or neurons permanently so that they no longer participate in
+either training or prediction. Thus, dropout is a temporary stochastic
+regularization technique, whereas pruning permanently reduces the model
+architecture.
 
 ### 4. Conclusions cannot be generalized to fully trained deep networks
 
-This experiment uses a **frozen hidden layer**, where the random hidden weights and biases are generated once and remain fixed. Only the output weights are learned. Consequently, the experiment evaluates regularization on **fixed random features** rather than on representations learned jointly with the hidden layers. The results therefore cannot be directly generalized to fully trained deep neural networks, where all layers are optimized together [@krogh1992weightdecay].
+This experiment uses a **frozen hidden layer**, where the random hidden
+weights and biases are generated once and remain fixed. Only the output
+weights are learned. Consequently, the experiment evaluates
+regularization on **fixed random features** rather than on
+representations learned jointly with the hidden layers. The results
+therefore cannot be directly generalized to fully trained deep neural
+networks, where all layers are optimized together.
 
 ### Limitations
 
-1. **Sensitivity to the random-feature seed.** The hidden features are generated from a single random initialization. Different seeds may produce different feature representations and model performance, so the results may depend on the chosen seed.
+1.  **Sensitivity to the random-feature seed.** The hidden features are
+    generated from a single random initialization. Different seeds may
+    produce different feature representations and model performance, so
+    the results may depend on the chosen seed.
 
-2. **Frozen hidden representation.** Since only the output layer is trained, the experiment does not evaluate how regularization affects feature learning in end-to-end trained neural networks.
+2.  **Frozen hidden representation.** Since only the output layer is
+    trained, the experiment does not evaluate how regularization affects
+    feature learning in end-to-end trained neural networks.
 
-3. **Limited experimental setting.** The conclusions are based on one hidden-layer architecture with 200 ReLU features and a single dataset. They may not generalize to deeper architectures, different activation functions, or other datasets.
+3.  **Limited experimental setting.** The conclusions are based on one
+    hidden-layer architecture with 200 ReLU features and a single
+    dataset. They may not generalize to deeper architectures, different
+    activation functions, or other datasets.
 
 # Abstract {.unnumbered}
 
@@ -2430,7 +2486,7 @@ The preferred model depends on the objective of the analysis.
 ## 5C. AI verification record
 
 | AI-assisted item | Verification procedure | Evidence | Final decision |
-|:----------------|:---------------------|:----------------|:----------------|
+|:-----------------|:------------------|:-----------------|:-----------------|
 | **Ridge regression derivation (Section 3A)** | Re-derived the penalized least squares objective using matrix calculus and verified each differentiation step against standard references. | Confirmed the normal equation $(X^\top X + \lambda I_p)\hat{\beta} = X^\top y$ and the resulting closed-form Ridge estimator. | **Accepted with minor revision:** Improved notation and expanded intermediate algebraic steps for clarity. |
 | **Lasso soft-thresholding derivation (Section 3B)** | Verified the coordinate-wise optimization using subgradient conditions under an orthonormal design matrix. | Confirmed that the solution is the soft-thresholding operator and that the derivation is valid only under the stated orthonormal assumption. | **Accepted:** Mathematical derivation was consistent after explicitly stating the required assumptions. |
 | **Manual VIF helper function** | Compared the custom implementation with the output of `car::vif()` using the baseline OLS model. | Both methods produced identical variance inflation factors up to numerical precision. | **Accepted:** The custom implementation was retained to avoid introducing an additional package dependency. |
