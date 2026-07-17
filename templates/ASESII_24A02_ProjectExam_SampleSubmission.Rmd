@@ -70,10 +70,6 @@ seeds <- list(
 )
 ```
 
-
-
-
-
 ## Shared helper functions {.unnumbered}
 
 ```{r helpers}
@@ -205,10 +201,6 @@ nonzero_slopes <- function(coefs, tol = 1e-8) {
 }
 ```
 
-
-
-
-
 # Problem 1. Prediction design and leakage control
 
 ## 1A. Target and predictors
@@ -237,10 +229,6 @@ if (!all(vapply(analysis_data, is.numeric, logical(1)))) {
   stop("The assigned response and predictors must be numeric.")
 }
 ```
-
-
-
-
 
 *Define the prediction task and justify every exclusion.*
 
@@ -314,10 +302,6 @@ y_test <- y_raw[test_id]
 foldid <- make_foldid(nrow(x_train), k = 5L, seed = seeds$cv)
 ```
 
-
-
-
-
 *Report seeds, dimensions, scaling, folds, and leakage safeguards.*
 
 ### 1. Split seed
@@ -388,10 +372,6 @@ qqnorm(y_train)
 qqline(y_train)
 ```
 
-
-
-
-
 The response variable (`lpsa`) has a mean of **2.54** and a median of
 **2.59**, indicating an approximately symmetric distribution. Most
 observations lie between **1.73** (first quartile) and **3.28** (third
@@ -415,10 +395,6 @@ pairs(
   cex = 0.6
 )
 ```
-
-
-
-
 
 The scatterplot matrix provides a visual overview of pairwise
 relationships among the response and predictors. Several predictors
@@ -453,10 +429,6 @@ ggplot(heatmap_df, aes(Var1, Var2, fill = value)) +
   theme_minimal()
 ```
 
-
-
-
-
 The correlation heatmap shows that **lcavol** has the strongest linear
 relationship with the response (*r* = 0.75), indicating that tumor
 volume is the single most informative predictor of `lpsa`. Moderate
@@ -490,10 +462,6 @@ coefficient instability is present.
 ```{r boxplot, eval=FALSE}
 boxplot(analysis_data[train_id, ])
 ```
-
-
-
-
 
 The boxplots identify several potential outliers, particularly in
 **age** and **pgg45**. Among the predictors, `pgg45` exhibits the
@@ -530,10 +498,6 @@ x_train_df$lpsa <- y_train
 ols_model <- lm(lpsa ~ ., data = x_train_df)
 ```
 
-
-
-
-
 The fitted OLS model serves as the baseline model for all subsequent
 comparisons with ridge and lasso regression.
 
@@ -542,10 +506,6 @@ comparisons with ridge and lasso regression.
 ```{r ols-summary, eval=FALSE}
 summary(ols_model)
 ```
-
-
-
-
 
 The fitted OLS model is statistically significant overall (**F =
 15.78**, p \< 0.001), indicating that at least one predictor contributes
@@ -585,10 +545,6 @@ train_rmse <- sqrt(train_mse)
 cat("Training MSE :", round(train_mse, 4), "\n")
 cat("Training RMSE:", round(train_rmse, 4), "\n")
 ```
-
-
-
-
 
 The fitted OLS model achieved
 
@@ -630,10 +586,6 @@ cat("Mean CV MSE :", round(mean(cv_mse), 4), "\n")
 cat("Mean CV RMSE:", round(sqrt(mean(cv_mse)), 4), "\n")
 ```
 
-
-
-
-
 The validation errors obtained from the five folds are
 
 | Fold | Validation MSE |
@@ -672,10 +624,6 @@ plot(
 abline(h = 0, col = "red")
 ```
 
-
-
-
-
 The residual-versus-fitted plot shows that the residuals are randomly
 scattered around zero without noticeable curvature or funnel-shaped
 patterns. This suggests that the assumptions of
@@ -692,10 +640,6 @@ misspecification is observed.
 qqnorm(resid(ols_model))
 qqline(resid(ols_model), col = "red")
 ```
-
-
-
-
 
 The normal Q-Q plot indicates that most residuals lie close to the
 reference line, with only slight departures in the two tails. Therefore,
@@ -720,10 +664,6 @@ assumption.
 ```{r ols-influence, eval=FALSE}
 plot(ols_model, which = 5)
 ```
-
-
-
-
 
 Most observations have low leverage and moderate residuals. Although a
 few observations (e.g., 23, 37, and 54) stand out slightly, none appears
@@ -751,10 +691,6 @@ abline(
 )
 ```
 
-
-
-
-
 Several observations exceed the reference line $4/n$, but all Cook's
 distance values are well below 1. Therefore, there is no strong evidence
 of influential observations.
@@ -768,10 +704,6 @@ regression.
 ```{r ols-vif, eval=FALSE}
 vif_manual(ols_model)
 ```
-
-
-
-
 
 The variance inflation factors (VIFs) were computed to assess
 multicollinearity among the predictors.
@@ -847,10 +779,6 @@ text(-log(ridge_model$lambda.1se),
      cex = 0.9)
 ```
 
-
-
-
-
 The cross-validation curve shows how the prediction error changes with
 the penalty parameter. The mean cross-validation error decreases until
 reaching its minimum at **`lambda.min`**. Around the minimum, the error
@@ -872,10 +800,6 @@ cat(sprintf("lambda.min: %.5f\n", ridge_model$lambda.min))
 cat(sprintf("lambda.1se: %.5f\n\n", ridge_model$lambda.1se))
 ```
 
-
-
-
-
 `lambda.min` is the value of $\lambda$ that minimizes the mean
 cross-validation error. It is selected when predictive accuracy is the
 primary objective.
@@ -896,10 +820,6 @@ cat(sprintf("cvm.min: %.5f\n", ridge_model$cvm[min_id]))
 coef(ridge_model, s = "lambda.min")
 ```
 
-
-
-
-
 At `lambda.min`, the model achieves the lowest cross-validation error.
 The coefficients are moderately shrunk compared with the OLS estimates,
 while the most important predictors still retain relatively large
@@ -914,10 +834,6 @@ cat(sprintf("cvm.1se: %.5f\n\n", ridge_model$cvm[se1_id]))
 
 coef(ridge_model, s = "lambda.1se")
 ```
-
-
-
-
 
 Using the larger penalty `lambda.1se` shrinks every coefficient further
 toward zero than `lambda.min`. The cross-validation error increases only
@@ -973,10 +889,6 @@ legend("topleft",
        bg = "white",
        ncol = 2)
 ```
-
-
-
-
 
 As the penalty decreases (moving from left to right), the coefficients
 move smoothly away from near zero toward their OLS estimates. Larger
@@ -1055,10 +967,6 @@ text(-log(lasso_model$lambda.1se), y_pos,
      pos = 2, col = "blue", cex = 0.9)
 ```
 
-
-
-
-
 Unlike Ridge regression, Lasso performs both coefficient shrinkage and
 variable selection. As the penalty increases, some coefficients are
 shrunk exactly to zero, producing a simpler and more interpretable
@@ -1075,10 +983,6 @@ cat(sprintf("lambda.min: %.5f\n", lasso_model$lambda.min))
 cat(sprintf("lambda.1se: %.5f\n\n", lasso_model$lambda.1se))
 ```
 
-
-
-
-
 The corresponding training cross-validation errors are
 
 ```{r}
@@ -1091,10 +995,6 @@ cat(sprintf("cvm.1se : %.5f\n\n",
             lasso_model$cvm[se1_id]))
 ```
 
-
-
-
-
 The selected predictors under the two tuning rules are
 
 ```{r}
@@ -1106,10 +1006,6 @@ cat("\n--- Nonzero coefficients (lambda.1se) ---\n")
 coef_1se <- coef(lasso_model, s = "lambda.1se")
 print(coef_1se[coef_1se[, 1] != 0, ])
 ```
-
-
-
-
 
 `lambda.min` prioritizes predictive accuracy and therefore usually keeps
 more predictors. `lambda.1se` accepts a small increase in prediction
@@ -1145,10 +1041,6 @@ legend("topleft",
        cex = 0.75,
        bg = "white")
 ```
-
-
-
-
 
 Unlike Ridge regression, Lasso coefficient paths frequently terminate at
 exactly zero. Variables that reach zero are removed from the model,
@@ -1273,10 +1165,6 @@ comparison_table <- data.frame(
 knitr::kable(comparison_table, digits = 4)
 ```
 
-
-
-
-
 Regularization improves predictive performance over OLS, with both Ridge
 (`lambda.min`) and Lasso (`lambda.min`) achieving lower cross-validation
 errors. Ridge shrinks the coefficients but retains all eight predictors,
@@ -1360,10 +1248,6 @@ cat("\nLasso:\n")
 print(lasso_coef[c(target_name, "duplicate_var"), , drop = FALSE])
 ```
 
-
-
-
-
 ### Observed result and explanation
 
 The perturbation confirms the expected behaviour of the two
@@ -1435,10 +1319,6 @@ kappa_ridge <- condition_numbers["ridge"]
 cat("Condition number of G (kappa_G):", kappa_G, "\n")
 cat("Condition number of Ridge (kappa_ridge):", kappa_ridge, "\n")
 ```
-
-
-
-
 
 ### Numerical interpretation
 
@@ -1737,7 +1617,7 @@ choice of optimization algorithm.
 | **C5** | **Theoretical:** Weight decay selects the minimum-norm solution, improving generalization in linear networks. | Krogh & Hertz (1991), Section 3, Eqs. (6)--(10) | Proves weight decay removes irrelevant weight components and favors the minimum-norm solution. | Does not prove the result for general non-linear networks. |
 | **C6** | **Theoretical:** Weight decay reduces overfitting to noisy targets. | Krogh & Hertz (1991), Section 4, Eqs. (12)--(17) | Derives an optimal weight decay for noisy linear models and shows reduced generalization error. | Does not show the same optimum applies to deep neural networks. |
 | **C7** | **Theoretical:** Weight decay can be extended to non-linear networks via local linearization. | Krogh & Hertz (1991), Section 5 | Argues that weight decay favors lower-complexity solutions in non-linear networks. | Does not provide a rigorous proof for arbitrary non-linear networks. |
-| **C8** | **Empirical:** Weight decay lowers generalization and prediction error on NetTalk. | Krogh & Hertz (1991), Secti |  |  |
+| **C8** | **Empirical:** Weight decay lowers generalization and prediction error on NetTalk. | Krogh & Hertz (1991), Secti |Demonstrates improved performance with weight decay on the NetTalk benchmark.  | Does not establish the same gains for modern architectures such as CNNs or Transformers. |
 
 **References**
 
@@ -1843,10 +1723,6 @@ legend(
   bg = "white"
 )
 ```
-
-
-
-
 
 ### Selection rule
 
@@ -2008,10 +1884,6 @@ H_test <- apply_scaler(
 )
 ```
 
-
-
-
-
 Ridge, lasso, and elastic net were fitted on the fixed ReLU feature
 matrix using the shared five-fold cross-validation assignment. For
 elastic net, the mixing parameter $\alpha$ was selected from the same
@@ -2063,10 +1935,6 @@ best_alpha_relu <- alpha_grid[best_id]
 enet_relu <- enet_models[[best_id]]
 ```
 
-
-
-
-
 The selected tuning values, training cross-validation errors, and
 numbers of active hidden features are summarized below.
 
@@ -2110,10 +1978,6 @@ knitr::kable(
   caption = "Cross-validation results on the fixed ReLU features."
 )
 ```
-
-
-
-
 
 ### Fixed and learned parameters
 
@@ -2231,10 +2095,6 @@ knitr::kable(
   caption = "Holdout performance of all locked candidate models."
 )
 ```
-
-
-
-
 
 ### Holdout evaluation
 
