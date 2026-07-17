@@ -72,7 +72,7 @@ seeds <- list(
 
 ## Shared helper functions {.unnumbered}
 
-```{r helpers}
+```{r helpers, eval=FALSE}
 find_exam_data <- function(filename) {
   input <- knitr::current_input(dir = TRUE)
   input_dir <- if (length(input) && nzchar(input)) dirname(input) else getwd()
@@ -205,7 +205,7 @@ nonzero_slopes <- function(coefs, tol = 1e-8) {
 
 ## 1A. Target and predictors
 
-```{r data-configuration, eval=TRUE}
+```{r data-configuration, eval=FALSE}
 config <- if (group_number %% 2L == 1L) {
   list(
     file = "fat.csv",
@@ -285,7 +285,7 @@ regression models.
 
 ## 1B. Split and train-only preprocessing
 
-```{r split-and-scale, eval=TRUE}
+```{r split-and-scale, eval=FALSE}
 split <- split_rows(nrow(analysis_data), seed = seeds$split)
 train_id <- split$train
 test_id <- split$test
@@ -491,7 +491,7 @@ the regularized regression models.
 
 ### Fit OLS
 
-```{r ols-fit, eval=TRUE}
+```{r ols-fit, eval=FALSE}
 x_train_df <- as.data.frame(x_train)
 x_train_df$lpsa <- y_train
 
@@ -559,7 +559,7 @@ observations.
 
 ### Five-fold cross-validation
 
-```{r ols-cv, eval=TRUE}
+```{r ols-cv, eval=FALSE}
 cv_mse <- numeric(5)
 coefs_list <-list()
 for(i in 1:5){
@@ -742,7 +742,7 @@ the following sections.
 The Ridge model is fitted using `glmnet` with `alpha = 0` on the
 training data.
 
-```{r ridge}
+```{r ridge, eval=FALSE}
 ridge_model <- fit_cv_glmnet(
   x_train,
   y_train,
@@ -795,7 +795,7 @@ exactly to zero and all eight predictors remain in the model.
 The optimal penalty values selected by cross-validation are reported
 below.
 
-```{r}
+```{r, eval=FALSE}
 cat(sprintf("lambda.min: %.5f\n", ridge_model$lambda.min))
 cat(sprintf("lambda.1se: %.5f\n\n", ridge_model$lambda.1se))
 ```
@@ -812,7 +812,7 @@ maintaining similar predictive performance.
 The coefficient estimates and corresponding cross-validation error at
 `lambda.min` are shown below.
 
-```{r}
+```{r, eval=FALSE}
 min_id <- which(ridge_model$lambda == ridge_model$lambda.min)
 
 cat(sprintf("cvm.min: %.5f\n", ridge_model$cvm[min_id]))
@@ -827,7 +827,7 @@ coefficients.
 
 The corresponding results for `lambda.1se` are shown below.
 
-```{r}
+```{r, eval=FALSE}
 se1_id <- which(ridge_model$lambda == ridge_model$lambda.1se)
 
 cat(sprintf("cvm.1se: %.5f\n\n", ridge_model$cvm[se1_id]))
@@ -849,7 +849,7 @@ remains in the fitted model under both tuning parameter choices.
 The coefficient paths show how the Ridge coefficients change as the
 penalty varies.
 
-```{r}
+```{r, eval=FALSE}
 
 plot(ridge_model$glmnet.fit,
      xvar = "lambda",
@@ -940,7 +940,7 @@ predictors.
 The lasso model is fitted using `glmnet` by setting `alpha = 1` on the
 training data.
 
-```{r lasso, eval=TRUE}
+```{r lasso, eval=FALSE}
 lasso_model <- fit_cv_glmnet(
   x_train,
   y_train,
@@ -978,14 +978,14 @@ within one standard error (`lambda.1se`).
 
 The optimal penalties are
 
-```{r}
+```{r, eval=FALSE}
 cat(sprintf("lambda.min: %.5f\n", lasso_model$lambda.min))
 cat(sprintf("lambda.1se: %.5f\n\n", lasso_model$lambda.1se))
 ```
 
 The corresponding training cross-validation errors are
 
-```{r}
+```{r, eval=FALSE}
 min_id <- which(lasso_model$lambda == lasso_model$lambda.min)
 se1_id <- which(lasso_model$lambda == lasso_model$lambda.1se)
 
@@ -997,7 +997,7 @@ cat(sprintf("cvm.1se : %.5f\n\n",
 
 The selected predictors under the two tuning rules are
 
-```{r}
+```{r, eval=FALSE}
 cat("--- Nonzero coefficients (lambda.min) ---\n")
 coef_min <- coef(lasso_model, s = "lambda.min")
 print(coef_min[coef_min[, 1] != 0, ]) 
@@ -1016,7 +1016,7 @@ error in exchange for a sparser and easier-to-interpret model.
 The coefficient paths illustrate how predictors enter and leave the
 model as the penalty changes.
 
-```{r}
+```{r, eval=FALSE}
 plot(lasso_model$glmnet.fit,
      xvar = "lambda",
      label = TRUE)
@@ -1085,7 +1085,7 @@ model selection remains unbiased.
 
 ### Training-based comparison
 
-```{r core-comparison}
+```{r core-comparison, eval=FALSE}
 # OLS
 cv_ols <- mean(cv_mse)
 coef_ols <- coef(ols_model)
@@ -1210,7 +1210,7 @@ ridge penalty encourages correlated predictors to share their effects.
 In contrast, Lasso is expected to retain only one of the two predictors
 while shrinking the other coefficient to zero.
 
-```{r perturbation}
+```{r perturbation, eval=FALSE}
 # Duplicate a strong predictor with small random noise
 target_idx <- 1
 target_name <- colnames(x_train)[target_idx]
@@ -1276,10 +1276,10 @@ group.
 *Write the ridge derivation. Define dimensions and explain uniqueness.*
 
 Let
-$X \in \mathbb{R}^{n \times p}, y \in \mathbb{R}^n, b \in \mathbb{R}^p$
+$X \in \mathbb{r, eval=FALSE}^{n \times p}, y \in \mathbb{r, eval=FALSE}^n, b \in \mathbb{r, eval=FALSE}^p$
 and define $$G = \frac{1}{n} X^\top X, \quad
-z = \frac{1}{n} X^\top y$$ consequently, $G \in \mathbb{R}^{p \times p}$
-and $z \in \mathbb{R}^p$.
+z = \frac{1}{n} X^\top y$$ consequently, $G \in \mathbb{r, eval=FALSE}^{p \times p}$
+and $z \in \mathbb{r, eval=FALSE}^p$.
 
 From the objective function
 $$Q_\lambda(b) = \frac{1}{2n}\|y - Xb\|_2^2 + \frac{\lambda}{2}\|b\|_2^2$$
@@ -1444,10 +1444,10 @@ estimates become more stable while retaining all predictors.
 orthonormal-design formula.*
 
 Let
-$X \in \mathbb{R}^{n \times p}, y \in \mathbb{R}^n, b \in \mathbb{R}^p$
+$X \in \mathbb{r, eval=FALSE}^{n \times p}, y \in \mathbb{r, eval=FALSE}^n, b \in \mathbb{r, eval=FALSE}^p$
 and define $$G = \frac{1}{n} X^\top X = I_p, \quad
-z = \frac{1}{n} X^\top y$$ consequently, $G \in \mathbb{R}^{p \times p}$
-and $z \in \mathbb{R}^p$.
+z = \frac{1}{n} X^\top y$$ consequently, $G \in \mathbb{r, eval=FALSE}^{p \times p}$
+and $z \in \mathbb{r, eval=FALSE}^p$.
 
 The objective function
 $$R_\lambda (b) = \frac{1}{2n} \|y - X b\|_2^2 + \lambda \|b\|_1, \quad \|b\|_1 = \sum_{j=1}^p |b_j|, \lambda > 0$$
@@ -1473,7 +1473,7 @@ optimization problems.
 
 Consider a fixed $j$, and let
 $l_j (t) = \frac{1}{2} t^2 - t z_j + \lambda |t|$, for
-$t \in \mathbb{R}$. We analyze this in three cases because $|t|$ is
+$t \in \mathbb{r, eval=FALSE}$. We analyze this in three cases because $|t|$ is
 *non-differentiable* at $t=0$.
 
 - **Case 1:** If $t > 0$, then $|t| = t$ and
@@ -1496,13 +1496,13 @@ $t \in \mathbb{R}$. We analyze this in three cases because $|t|$ is
   means it is trapped exactly at the non-differentiable corner: $t = 0$.
   We verify that $t = 0$ minimizes $l_j (t)$ (3).
 
-For any $t \in \mathbb{R}$ $$\begin{aligned}
+For any $t \in \mathbb{r, eval=FALSE}$ $$\begin{aligned}
 l_j (t) - l_j (0) &= \frac{1}{2} t^2 - t z_j + \lambda |t| \\
                   &\ge \frac{1}{2} t^2 - |t| |z_j| + \lambda |t| \quad (-t z_j \ge -|t| |z_j|) \\
                   &\ge \frac{1}{2} t^2 - |t| (|z_j| - \lambda) \\
                   &\ge 0 \quad (|z_j| - \lambda \le 0)
 \end{aligned}$$ Therefore, $l_j (t) \ge l_j (0)$ for all
-$t \in \mathbb{R}$, proving $t=0$ is the global minimum for this range.
+$t \in \mathbb{r, eval=FALSE}$, proving $t=0$ is the global minimum for this range.
 
 Combining these cases yields the soft-thresholding estimator for
 $\hat{b}_j$: $$\hat{b}_j = \begin{cases}
@@ -1634,7 +1634,7 @@ Ridge. The objective is to determine whether a mixture of the two
 penalties can achieve a better balance between prediction accuracy,
 coefficient stability, and model sparsity than either method alone.
 
-```{r original-elastic-net, eval=TRUE}
+```{r original-elastic-net, eval=FALSE}
 alpha_grid <- c(0.10, 0.25, 0.50, 0.75, 0.90)
 
 enet_models <- vector("list", length(alpha_grid))
@@ -1799,7 +1799,7 @@ seed and then applied unchanged to both the training and test sets.
 Hidden features with zero variance in the training data were removed
 using training information only.
 
-```{r random-relu-features}
+```{r random-relu-features, eval=FALSE}
 set.seed(seeds$features)
 
 relu <- function(z) pmax(z, 0)
@@ -1889,7 +1889,7 @@ matrix using the shared five-fold cross-validation assignment. For
 elastic net, the mixing parameter $\alpha$ was selected from the same
 candidate grid as in Part 4B.
 
-```{r relu-models}
+```{r relu-models, eval=FALSE}
 ridge_relu <- fit_cv_glmnet(
   H_train,
   y_train,
@@ -1938,7 +1938,7 @@ enet_relu <- enet_models[[best_id]]
 The selected tuning values, training cross-validation errors, and
 numbers of active hidden features are summarized below.
 
-```{r relu-summary}
+```{r relu-summary, eval=FALSE}
 relu_summary <- data.frame(
 
   Model = c(
@@ -2025,7 +2025,7 @@ locked as follows.
   predictors**.
 - Holdout performance was evaluated using RMSE and MAE.
 
-```{r final-holdout}
+```{r final-holdout, eval=FALSE}
 ## ---------- Original-feature models ----------
 
 pred_ols <- predict(
@@ -2374,7 +2374,7 @@ stopifnot("Data Leakage Alert: Train and test indices overlap!" = length(interse
 cat("Preflight audit passed: Folds, objects, and leakage boundaries are verified.\n")
 ```
 
-```{r session-info}
+```{r session-info, eval=FALSE}
 # Print full R engine, OS, and package version details for reproducibility auditing
 sessionInfo()
 ```
