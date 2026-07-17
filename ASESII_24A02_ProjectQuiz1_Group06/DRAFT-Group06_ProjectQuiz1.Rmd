@@ -18,8 +18,8 @@ params:
   group_number: 6
 fontsize: 11pt
 geometry: margin=1in
-editor_options:
-  markdown:
+editor_options: 
+  markdown: 
     wrap: 72
 ---
 
@@ -49,10 +49,8 @@ missing_packages <- required_packages[
   !vapply(required_packages, requireNamespace, logical(1), quietly = TRUE)
 ]
 if (length(missing_packages)) {
-  stop(
-    "Install the required packages before rendering: ",
-    paste(missing_packages, collapse = ", ")
-  )
+  stop("Install the required packages before rendering: ",
+       paste(missing_packages, collapse = ", "))
 }
 
 library(tidyverse)
@@ -75,7 +73,6 @@ seeds <- list(
 ## Shared helper functions {.unnumbered}
 
 ```{r helpers}
-# safely locates dataset using relative paths
 find_exam_data <- function(filename) {
   input <- knitr::current_input(dir = TRUE)
   input_dir <- if (length(input) && nzchar(input)) dirname(input) else getwd()
@@ -93,7 +90,6 @@ find_exam_data <- function(filename) {
   hits[[1L]]
 }
 
-# generates row numbers to split data into a training set and a testing set
 split_rows <- function(n, train_prop = 0.80, seed) {
   stopifnot(n >= 10L, train_prop > 0, train_prop < 1)
   set.seed(seed)
@@ -101,14 +97,6 @@ split_rows <- function(n, train_prop = 0.80, seed) {
   list(train = train, test = setdiff(seq_len(n), train))
 }
 
-# assigns each row in training data to a specific "fold" for k-fold cross-validation
-make_foldid <- function(n, k = 5L, seed) {
-  if (k < 3L || k > n) stop("Require 3 <= k <= number of training rows.")
-  set.seed(seed)
-  sample(rep(seq_len(k), length.out = n))
-}
-
-# learns the mean and standard deviation of training data.
 fit_scaler <- function(x, tol = 1e-12) {
   x <- as.matrix(x)
   center <- colMeans(x)
@@ -124,14 +112,18 @@ fit_scaler <- function(x, tol = 1e-12) {
   )
 }
 
-# applies the scaling rules fit_scaler to any dataset
 apply_scaler <- function(x, prep) {
   x <- as.matrix(x)[, prep$keep, drop = FALSE]
   x <- sweep(x, 2L, prep$center, "-")
   sweep(x, 2L, prep$scale, "/")
 }
 
-# fits a penalized regression model using cross-validation
+make_foldid <- function(n, k = 5L, seed) {
+  if (k < 3L || k > n) stop("Require 3 <= k <= number of training rows.")
+  set.seed(seed)
+  sample(rep(seq_len(k), length.out = n))
+}
+
 fit_cv_glmnet <- function(x, y, alpha, foldid) {
   glmnet::cv.glmnet(
     x = x,
@@ -145,27 +137,22 @@ fit_cv_glmnet <- function(x, y, alpha, foldid) {
   )
 }
 
-# calculates how wrong model's predictions are using RMSE and MAE
 score_regression <- function(y, prediction) {
   y <- as.numeric(y)
   prediction <- as.numeric(prediction)
   if (length(y) != length(prediction) || any(!is.finite(c(y, prediction)))) {
     stop("Metrics require equal-length finite vectors.")
   }
-  c(
-    RMSE = sqrt(mean((y - prediction)^2)),
-    MAE = mean(abs(y - prediction))
-  )
+  c(RMSE = sqrt(mean((y - prediction)^2)),
+    MAE = mean(abs(y - prediction)))
 }
 
-# counts how many variables the model actually used
 count_nonzero <- function(fit, s = "lambda.min", tol = 1e-8) {
   b <- as.matrix(stats::coef(fit, s = s))
   slopes <- b[rownames(b) != "(Intercept)", 1L]
   sum(abs(slopes) > tol)
 }
 
-# measures multicollinearity and shows how applying Ridge regularization reduces instability
 safe_condition_numbers <- function(x, lambda, tol = 1e-10) {
   G <- crossprod(x) / nrow(x)
   eigenvalues <- eigen(G, symmetric = TRUE, only.values = TRUE)$values
@@ -177,20 +164,33 @@ safe_condition_numbers <- function(x, lambda, tol = 1e-10) {
     ridge = (largest + lambda) / (smallest + lambda)
   )
 }
-
-plot_model_result <- function(model, model_name) {
-  model_result <- augment(model)
+plot_model_result <- function(model, model_name) { 
+   model_result <- augment(model)
   ggplot(model_result, aes(x = .fitted, y = .resid)) +
     geom_point(color = "steelblue", size = 2, alpha = 0.8) +
+    
     geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 1) +
+    
     theme_minimal() +
+
     labs(
       title = paste("Residual Plot Model:", model_name),
       subtitle = "Checking for non-linear patterns and constant variance",
       x = "Predicted lpsa (.fitted)",
       y = "Residuals (.resid)"
-    )
+    ) 
 }
+
+vif_manual <- function(model) {
+  X <- model.matrix(model)[, -1, drop = FALSE]
+
+  sapply(seq_len(ncol(X)), function(i) {
+    fit <- lm(X[, i] ~ X[, -i])
+    1 / (1 - summary(fit)$r.squared)
+  }) |> setNames(colnames(X))
+}
+
+
 ```
 
 # Problem 1. Prediction design and leakage control
@@ -232,7 +232,7 @@ which is a continuous number
 ### 2. Candidate Predictors
 
 |                      |                                  |                     |
-| -------------------- | -------------------------------- | ------------------- |
+|---------------------|-------------------------------|--------------------|
 | Candidate Predictors | Full Name                        | Type                |
 | lcavol               | Log Cancer Volume                | Continuous          |
 | lweight              | Log Prostate Weight              | Continuous          |
@@ -268,11 +268,12 @@ lbph, svi, lcp, gleason, and pgg45).
 
 ### 7. Required Exclusions
 
-The response variable, `lpsa`, was excluded from the predictor matrix because
-it is the outcome to be predicted. The remaining eight clinical variables were
-retained as predictors. Since the dataset contains no variables derived from
-`lpsa`, no additional exclusions were required. This prevents target leakage
-and ensures a fair comparison among the regression models.
+The response variable, `lpsa`, was excluded from the predictor matrix
+because it is the outcome to be predicted. The remaining eight clinical
+variables were retained as predictors. Since the dataset contains no
+variables derived from `lpsa`, no additional exclusions were required.
+This prevents target leakage and ensures a fair comparison among the
+regression models.
 
 ## 1B. Split and train-only preprocessing
 
@@ -300,7 +301,7 @@ foldid <- make_foldid(nrow(x_train), k = 5L, seed = seeds$cv)
 - Seed `split` for 80/20 split: 240206
 - Seed `cv` for K-fold split: 240306
 
-### 2. Train/Test split
+### 2. Train/Test Split
 
 The dataset of 97 observations was partitioned into:
 
@@ -310,9 +311,10 @@ The dataset of 97 observations was partitioned into:
 ### 3. Feature Scaling Rule
 
 Continuous predictor variables were centered and scaled using the helper
-functions `fit_scaler()` and `apply_scaler()`. The scaling parameters were
-estimated **only from the training data** in `fit_scaler()` and then applied
-unchanged to both the training and test sets by `apply_scaler()`.
+functions `fit_scaler()` and `apply_scaler()`. The scaling parameters
+were estimated **only from the training data** in `fit_scaler()` and
+then applied unchanged to both the training and test sets by
+`apply_scaler()`.
 
 Specifically, each predictor was transformed as
 $$
@@ -330,7 +332,7 @@ prevents information leakage from the holdout data.
 A single, immutable five-fold cross-validation assignment vector
 (`foldid`) was generated on the 77 training observations using the
 designated `cv` random seed. To ensure fair and controlled comparisons,
-this exact same fold assignment was reused across all models evaluated
+this exact same fold assignment was reused across all models evaluated:
 
 - Ridge Regression
 - Lasso Regression
@@ -339,66 +341,14 @@ this exact same fold assignment was reused across all models evaluated
 
 ### 5. Missing-Value Plan
 
-**TODO:** add plan
-There are no missing values in the dataset
+No missing values were detected. If any had been present, they would
+have been handled using a training-only imputation procedure before
+model fitting.
 
 ## 1C. Training-data exploration
 
-```{r training-eda, eval=FALSE}
-# Use analysis_data[train_id, ] only. Add focused plots and summaries.
-
-## Response distribution
-
-summary(y_train)
-sd(y_train)
-
-hist(y_train)
-qqnorm(y_train)
-qqline(y_train)
-
-## Relationship exploration
-
-cor_matrix <- cor(analysis_data[train_id, ])
-
-heatmap_df <- expand.grid(
-  Var1 = rownames(cor_matrix),
-  Var2 = colnames(cor_matrix)
-)
-
-heatmap_df$value <- c(cor_matrix)
-
-ggplot(heatmap_df, aes(Var1, Var2, fill = value)) +
-  geom_tile() +
-  geom_text(aes(label = round(value, 2)), size = 3) +
-  scale_fill_gradient2(
-    low = "blue",
-    mid = "white",
-    high = "red",
-    midpoint = 0,
-    limits = c(-1, 1)
-  ) +
-  coord_fixed() +
-  theme_minimal()
-
-## One possible anomaly or influential observation
-
-boxplot(analysis_data[train_id, ],
-  las = 2,
-  main = "Predictor Distributions (All Labels Visible)",
-  col = "lightgray",
-  outchar = TRUE
-)
-
-## One pair or group of predictors for which multicollinearity may matter
-
-# (See correlation heatmap.)
-```
-
-*Interpret multicollinearity, one anomaly, and the question
-regularization will address.*
-
 The exploratory analysis in this section uses only the training
-observations to avoid information leakage from the holdout set.
+observations to avoid information leakage from the holdout test set.
 
 ### Response distribution
 
@@ -406,19 +356,27 @@ observations to avoid information leakage from the holdout set.
 summary(y_train)
 sd(y_train)
 
-hist(y_train)
+hist(
+  y_train,
+  main = "Histogram of y_train",
+  xlab = "y_train"
+)
+
 qqnorm(y_train)
 qqline(y_train)
 ```
 
-The response variable (`lpsa`) is approximately symmetric, with the mean
-close to the median. Most observations are concentrated between 1.5 and
-3.5, while only a few observations appear in the tails. The histogram
-and Q–Q plot indicate that the Gaussian assumption is broadly
-reasonable, although slight departures from the reference line are
-present in the upper tail.
+The response variable (`lpsa`) has a mean of **2.54** and a median of
+**2.59**, indicating an approximately symmetric distribution. Most
+observations lie between **1.73** (first quartile) and **3.28** (third
+quartile), with a standard deviation of **1.15**.
 
-### One correlation table or focused relationship plot
+The histogram suggests that most observations are concentrated around
+the center, while only a few observations appear in the lower and upper
+tails. The normal Q–Q plot shows that most observations follow the
+reference line reasonably well, with slight departures in the tails.
+Overall, the response distribution is approximately normal, making it
+suitable for linear regression.
 
 ```{r, eval=FALSE}
 cor_matrix <- cor(analysis_data[train_id, ])
@@ -457,13 +415,11 @@ relatively weak marginal relationships with the response.
 boxplot(analysis_data[train_id, ])
 ```
 
-The boxplots identify several potential outliers, particularly for `age`
-and `pgg45`, with `pgg45` exhibiting the greatest variability among the
-predictors. These observations may have a greater influence on the
-fitted regression model than typical observations. However, because
-there is no evidence that they arise from data entry errors, they are
-retained and their influence will be assessed using formal regression
-diagnostics in the OLS analysis.
+The boxplots identify several potential outliers, particularly in
+**age** and **pgg45**. Among the predictors, `pgg45` exhibits the
+largest variability, while `age` contains several observations outside
+the whiskers. These observations are retained because there is no
+evidence that they result from data entry errors.
 
 ### One pair or group of predictors for which multicollinearity may matter
 
@@ -484,62 +440,283 @@ coefficient stability and variable selection.
 Based on the exploratory analysis, the following question will guide the
 remaining analysis:
 
-> Can ridge regression reduce the instability caused by
-> multicollinearity, and can lasso identify a smaller subset of
-> predictors while maintaining comparable predictive performance?
+> Can regularization improve predictive performance and coefficient
+> stability when predictors contain overlapping information?
+
+*Interpret multicollinearity, one anomaly, and the question
+regularization will address.*
 
 # Problem 2. OLS, ridge, and lasso
 
 ## 2A. OLS baseline
 
-```{r ols, eval=FALSE}
-# Fit OLS on x_train and y_train. Do not access y_test here.
-train_df <- as_tibble(x_train)
-train_df$lpsa <- y_train
+The ordinary least squares (OLS) model was fitted using only the
+standardized training observations. Throughout this section, the holdout
+test set remained completely untouched to ensure a fair comparison with
+the regularized regression models.
 
-ols_model <- lm(lpsa ~ ., data = train_df)
-ols_coefs <- tidy(ols_model, conf.int = TRUE)
-print(ols_coefs)
+### Fit OLS
 
-train_preds <- predict(ols_model, newdata = train_df)
-train_mse <- mean((train_df$lpsa - train_preds)^2)
-train_rmse <- sqrt(train_mse)
+```{r ols-fit, eval=FALSE}
+x_train_df <- as.data.frame(x_train)
+x_train_df$lpsa <- y_train
 
-cat("\n--- Training Error ---\n")
-cat("Training MSE :", round(train_mse, 5), "\n")
-cat("Training RMSE:", round(train_rmse, 5), "\n")
-
-cv_mse_scores <- numeric(5)
-
-for (i in 1:5) {
-  fold_train_df <- train_df[foldid != i, ]
-  fold_val_df <- train_df[foldid == i, ]
-
-  fold_model <- lm(lpsa ~ ., data = fold_train_df)
-  fold_preds <- predict(fold_model, newdata = fold_val_df)
-
-  cv_mse_scores[i] <- mean((fold_val_df$lpsa - fold_preds)^2)
-
-  log_message <- sprintf("Fold %d completed | Validation MSE: %.4f\n", i, cv_mse_scores[i])
-  cat(log_message)
-
-  print(tidy(fold_model, conf.int = TRUE))
-  print(plot_model_result(fold_model, paste("fold", i)))
-}
-
-cv_mse_mean <- mean(cv_mse_scores)
-cv_rmse_mean <- mean(sqrt(cv_mse_scores))
-
-cat("\n--- CV Error ---\n")
-cat("CV MSE :", round(cv_mse_mean, 5), "\n")
-cat("CV RMSE:", round(cv_rmse_mean, 5), "\n")
-
-ols_result <- augment(ols_model)
-qqnorm(ols_result$.resid)
-qqline(ols_result$.resid)
+ols_model <- lm(lpsa ~ ., data = x_train_df)
 ```
 
+The fitted OLS model serves as the baseline model for all subsequent
+comparisons with ridge and lasso regression.
+
+------------------------------------------------------------------------
+
+### Coefficient estimates
+
+```{r ols-summary, eval=FALSE}
+summary(ols_model)
+```
+
+The fitted OLS model is statistically significant overall (**F =
+15.78**, p \< 0.001), indicating that at least one predictor contributes
+to explaining the variation in the response variable.
+
+The model achieves a **Multiple** $R^2$ of 0.6500 and an **Adjusted**
+$R^2$ of 0.6088, suggesting that approximately **65%** of the
+variability in `lpsa` is explained by the eight clinical predictors.
+
+Among the predictors,
+
+- **lcavol** ($\beta=0.674$, p \< 0.001),
+- **lweight** ($\beta=0.202$, p = 0.0438),
+- **age** ($\beta=-0.194$, p = 0.0435), and
+- **svi** ($\beta=0.282$, p = 0.0206)
+
+are statistically significant at the 5% significance level.
+
+The remaining predictors (`lbph`, `lcp`, `gleason`, and `pgg45`) are not
+individually significant after adjusting for the other predictors in the
+model.
+
+The estimated coefficient for **age** is negative ($\beta=-0.194$). This
+result suggests that the estimated effect of `age` changes after
+accounting for the remaining predictors in the model. The possibility of
+correlation among predictors is therefore investigated using variance
+inflation factors in the following subsection.
+
+### Training error
+
+```{r ols-training-error, eval=FALSE}
+train_pred <- predict(m1)
+
+train_mse <- mean((y_train - train_pred)^2)
+train_rmse <- sqrt(train_mse)
+
+cat("Training MSE :", round(train_mse, 4), "\n")
+cat("Training RMSE:", round(train_rmse, 4), "\n")
+```
+
+The fitted OLS model achieved
+
+- **Training MSE = 0.4544**
+- **Training RMSE = 0.6741**
+
+These quantities measure the goodness-of-fit on the training
+observations used to estimate the regression coefficients. Since the
+model is evaluated on the same data used for fitting, the training error
+is expected to underestimate the prediction error on unseen
+observations.
+
+------------------------------------------------------------------------
+
+### Five-fold cross-validation
+
+```{r ols-cv, eval=FALSE}
+cv_mse <- numeric(5)
+coefs_list <-list()
+for(i in 1:5){
+
+  train_fold <- x_train_df[foldid != i, ]
+  valid_fold <- x_train_df[foldid == i, ]
+
+  model <- lm(lpsa ~ ., data = train_fold)
+
+  pred <- predict(model, newdata = valid_fold)
+  fold_coef <- as.matrix(coef(model, s="lambda.min"))
+  coefs_list[[i]] <- as.data.frame(t(fold_coef))
+  cv_mse[i] <- mean((valid_fold$lpsa - pred)^2)
+}
+coef_ols_df <- bind_rows(coefs_list)
+cv_table <- data.frame(
+  Fold = 1:5,
+  Validation_MSE = round(cv_mse, 4)
+)
+
+knitr::kable(cv_table)
+
+cat("Mean CV MSE :", round(mean(cv_mse), 4), "\n")
+cat("Mean CV RMSE:", round(sqrt(mean(cv_mse)), 4), "\n")
+```
+
+The validation errors obtained from the five folds are
+
+| Fold | Validation MSE |
+|-----:|---------------:|
+|    1 |         0.8259 |
+|    2 |         0.8568 |
+|    3 |         0.4011 |
+|    4 |         0.4893 |
+|    5 |         0.9002 |
+
+The average cross-validation error is
+
+- **Mean CV MSE = 0.6947**
+- **Mean CV RMSE = 0.8335**
+
+As expected, the cross-validation error is larger than the training
+error because each validation fold consists of observations that were
+not used to estimate the regression coefficients. Although some
+variation exists among the five folds, the validation errors remain
+within a similar range, suggesting that the predictive performance of
+the OLS model is reasonably stable across different training subsets.
+
+------------------------------------------------------------------------
+
+### Residual diagnostics
+
+#### Residual versus fitted values
+
+```{r ols-residual, eval=FALSE}
+plot(
+  fitted(m1),
+  resid(m1),
+  xlab = "Fitted values",
+  ylab = "Residuals",
+  main = "Residuals vs Fitted"
+)
+
+abline(h = 0, col = "red")
+```
+
+The residual-versus-fitted plot shows that the residuals are randomly
+scattered around zero without noticeable curvature or funnel-shaped
+patterns. This suggests that the assumptions of
+
+- linearity, and
+- constant error variance (homoscedasticity)
+
+are reasonably satisfied. No obvious systematic pattern indicating model
+misspecification is observed.
+
+#### Normal Q-Q plot
+
+```{r ols-qqplot, eval=FALSE}
+qqnorm(resid(m1))
+qqline(resid(m1), col = "red")
+```
+
+The normal Q-Q plot indicates that most residuals lie close to the
+reference line, with only slight departures in the two tails. Therefore,
+the residual distribution appears approximately normal.
+
+The normal Q–Q plot indicates that the residuals are approximately
+normally distributed, with only slight deviations in the tails. This
+behavior is consistent with the mildly skewed response distribution
+observed during the exploratory analysis. Since the residuals satisfy
+
+$$\hat{\mathbf e}=(I-H)\mathbf y,$$
+
+where $\hat{\mathbf e}$ is the residual vector, $\mathbf y$ is the
+response vector, $I$ is the identity matrix, and
+$H=X(X^\top X)^{-1}X^\top$ is the hat matrix, their distribution
+naturally reflects the response after removing the fitted linear
+component. Overall, there is no strong evidence against the normality
+assumption.
+
+#### Influence plot
+
+```{r ols-influence, eval=FALSE}
+plot(ols_model, which = 5)
+```
+
+Most observations have low leverage and moderate residuals. Although a
+few observations (e.g., 23, 37, and 54) stand out slightly, none appears
+to have an unusually large influence on the fitted model.
+
+#### Cook's Distance
+
+```{r ols-cook-distance, eval=FALSE}
+cook <- cooks.distance(ols_model)
+
+plot(
+  cook,
+  type = "h",
+  lwd = 3,
+  col = "red",
+  xlab = "Observation",
+  ylab = "Cook's Distance",
+  main = "Cook's Distance"
+)
+
+abline(
+  h = 4 / nrow(x_train_df),
+  col = "blue",
+  lty = 2
+)
+```
+
+Several observations exceed the reference line $4/n$, but all Cook's
+distance values are well below 1. Therefore, there is no strong evidence
+of influential observations.
+
+Taken together, the residual diagnostics do not reveal any serious
+violation of the standard assumptions underlying ordinary least squares
+regression.
+
+------------------------------------------------------------------------
+
+### Ill-conditioned design
+
+```{r ols-vif, eval=FALSE}
+vif_manual(ols_model)
+```
+
+The variance inflation factors (VIFs) were computed to assess
+multicollinearity among the predictors.
+
+The VIF values range from **1.33** to **3.24**, with the largest values
+observed for
+
+- `lcp` (3.24),
+- `pgg45` (2.97),
+- `gleason` (2.68), and
+- `lcavol` (2.42).
+
+None of the predictors exceeds the commonly used threshold of **5**,
+indicating that severe multicollinearity is not present in the training
+design matrix.
+
+This finding is consistent with the correlation analysis presented in
+Section 1C. Although several predictor pairs, such as `gleason`–`pgg45`
+and `lcavol`–`lcp`, exhibit moderate pairwise correlations, pairwise
+correlation alone does not necessarily imply problematic
+multicollinearity. The VIF measures how well each predictor can be
+explained by **all remaining predictors simultaneously**, making it a
+more appropriate diagnostic for coefficient instability.
+
+Overall, the VIF results suggest that the correlations among predictors
+are not sufficiently strong to produce substantial inflation of the
+coefficient variances. Therefore, no clear evidence of an
+ill-conditioned design was found, and the OLS estimates provide an
+appropriate baseline for comparison with ridge and lasso regression in
+the following sections.
+
+------------------------------------------------------------------------
+
 ## 2B. Ridge
+
+### Fitting Ridge
+
+The ridge model is fitted using glmnet by setting alpha = 0 with the
+training data.
 
 ```{r ridge, eval=FALSE}
 # Use fit_cv_glmnet(..., alpha = 0, foldid = foldid).
@@ -547,28 +724,338 @@ qqline(ols_result$.resid)
 ridge_model <- fit_cv_glmnet(x_train, y_train, alpha = 0, foldid = foldid)
 
 plot(ridge_model)
+abline(v = -log(ridge_model$lambda.min), col = "green", lty = 2, lwd = 1.5)
+abline(v = -log(ridge_model$lambda.1se), col = "blue", lty = 2, lwd = 1.5)
+y_pos <- max(ridge_model$cvup) 
+text(x = -log(ridge_model$lambda.min), y = y_pos, labels = "lambda.min", pos = 2, col = "green", cex = 0.9)
+text(x = -log(ridge_model$lambda.1se), y = y_pos, labels = "lambda.1se", pos = 2, col = "blue", cex = 0.9)
+```
 
+The cross-validation curve demonstrates that the mean squared error
+(MSE) reaches its minimum before increasing as the penalty becomes too
+severe, the variance of the MSE also decrease when $\lambda$ decrease.
+Because Ridge regression lacks a coordinate-wise thresholding mechanism,
+it does not perform variable selection, exactly 8 non-zero predictors
+remain active across the entire penalty path.
+
+### Investigation on $\lambda_{min}$ and $\lambda_{1se}$
+
+We can extract the specific penalties and their corresponding training
+CV errors:
+
+```{r}
 cat(sprintf("lambda.min: %.5f\n", ridge_model$lambda.min))
 cat(sprintf("lambda.1se: %.5f\n\n", ridge_model$lambda.1se))
+```
 
-cv_ridge_min <- ridge_model$cvm[which(ridge_model$lambda == ridge_model$lambda.min)]
-cv_ridge_1se <- ridge_model$cvm[which(ridge_model$lambda == ridge_model$lambda.1se)]
-cat(sprintf("cvm.min: %.5f\n", cv_ridge_min))
-cat(sprintf("cvm.1se: %.5f\n\n", cv_ridge_1se))
+Evaluating the coefficients at $\lambda_{min}$ and $\lambda_{1se}$
+reveals how the penalty shrinks the estimates. At $\lambda_{min}$, the
+largest coefficient is lcavol (0.4587) and the smallest is age
+(-0.1123).
+
+```{r}
+min_id <- which(ridge_model$lambda == ridge_model$lambda.min)
+cat(sprintf("cvm.min: %.5f\n", ridge_model$cvm[min_id]))
+coef(ridge_model, s ="lambda.min")
+```
+
+As expected, the coefficients at the stricter $\lambda_{1se}$ are
+shrunken even closer to zero.
+
+```{r}
+se1_id <- which(ridge_model$lambda == ridge_model$lambda.1se)
+cat(sprintf("cvm.1se: %.5f\n\n", ridge_model$cvm[se1_id]))
+coef(ridge_model, s ="lambda.1se")
+```
+
+### Coefficient paths
+
+Plotting the coefficient paths visualizes the shrinkage. As the penalty
+decreases (moving from left to right), the coefficients expand toward
+their Ordinary Least Squares (OLS) values. On the far left, the model is
+"blind" due to the massive penalty, so all weights are near $0$. As
+moving to the right, the dominant predictors rise first because they
+provide the biggest drop in error. Once the dominant signals are
+established, the correlated predictors begin to rise or fall to fill in
+the remaining details. If a variable's weight decreases, it is because
+that variable is being used to counteract the dominant variables, or
+because it is refining the model's prediction at the expense of a
+simpler, more biased solution.
+
+```{r}
 
 # the plot automatically turn into the plot.glmnet function
+# 1. Generate the base plot
 plot(ridge_model$glmnet.fit, xvar = "lambda", label = TRUE)
-
 title("Ridge Coefficient Paths", line = 2.5)
 
-ridge_result <- predict(ridge_model, newx = x_train, s = "lambda.min")
-ridge_residual <- y_train - ridge_result
+abline(v = -log(ridge_model$lambda.min), col = "green", lty = 2, lwd = 1.5)
+abline(v = -log(ridge_model$lambda.1se), col = "blue", lty = 2, lwd = 1.5)
+
+legend("topleft", 
+       legend = c("lambda.min", "lambda.1se"), 
+       col = c("green", "blue"), 
+       lty = 2, 
+       lwd = 1.5, 
+       cex = 0.8, 
+       bg = "white")
+
+predictor_names <- rownames(ridge_model$glmnet.fit$beta)
+
+legend("topleft", 
+       inset = c(0, 0.21), # Pushes the legend down by 15% of the plot height
+       legend = paste(1:length(predictor_names), predictor_names, sep = " - "), 
+       col = 1:length(predictor_names), 
+       lty = 1,                         
+       lwd = 1.5, 
+       cex = 0.8, 
+       bg = "white",
+       ncol = 2)
+# Use fit_cv_glmnet(..., alpha = 0, foldid = foldid).
 ```
 **TODO:** explanation
 
-## 2C. Lasso
+We can see the shrinkage corresponding to the OLS solution, at
+$\lambda_{min}$ the length of the Ridge weight vector is around 0.71
+with respect to the OLS weight. This is desirable since $\lambda\_{min}
+= 0.28$, which is not a too strict penalty.
+
+```{r}
+coef_matrix <- as.matrix(coef(ridge_model$glmnet.fit)[-1, ])
+ridge_l2_norms <- sqrt(colSums(coef_matrix^2))
+ols_coefs <- coef(ols_model)[-1]
+ols_l2_norm <- sqrt(sum(ols_coefs^2))
+
+shrinkage_ratio <- ridge_l2_norms / ols_l2_norm
+
+x_min <- -log(ridge_model$lambda.min)
+x_1se <- -log(ridge_model$lambda.1se)
+
+coef_min <- as.matrix(coef(ridge_model, s = "lambda.min"))[-1, ]
+ratio_min <- sqrt(sum(coef_min^2)) / ols_l2_norm
+
+coef_1se <- as.matrix(coef(ridge_model, s = "lambda.1se"))[-1, ]
+ratio_1se <- sqrt(sum(coef_1se^2)) / ols_l2_norm
+
+plot(-log(ridge_model$lambda), shrinkage_ratio, 
+     type = "l", col = "purple", lwd = 2,
+     xlab = expression(-log(lambda)), 
+     ylab = expression(paste("||", hat(beta)[lambda]^R, "||"[2], " / ||", hat(beta)^{OLS}, "||"[2])),
+     main = "Percentage Shrinkage by Lambda",
+     ylim = c(0, 1))
+
+abline(v = x_min, col = "green", lty = 2, lwd = 1.5)
+abline(v = x_1se, col = "blue", lty = 2, lwd = 1.5)
+
+points(x_min, ratio_min, pch = 19, col = "green", cex = 1.2)
+points(x_1se, ratio_1se, pch = 19, col = "blue", cex = 1.2)
+
+
+text(x_min, ratio_min, labels = sprintf("(%.2f, %.2f)", x_min, ratio_min), pos = 4, col = "green", cex = 0.8)
+text(x_1se, ratio_1se, labels = sprintf("(%.2f, %.2f)", x_1se, ratio_1se), pos = 2, col = "blue", cex = 0.8)
+
+legend("topleft", 
+       legend = c("Shrinkage Ratio", "lambda.min", "lambda.1se"), 
+       col = c("purple", "green", "blue"), 
+       lty = c(1, 2, 2), lwd = 1.5, cex = 0.8, bg = "white")
+```
+
+### General Behavior of Correlated Predictors Under Ridge Regression
+
+When predictors are highly correlated, OLS models struggle to isolate
+their individual effects, often arbitrarily inflating one coefficient
+while suppressing or reversing its partner. This causes extreme
+instability across different data splits.
+
+Ridge regression fixes this by heavily punishing excessively large
+individual weights. Instead of letting correlated variables compete,
+Ridge forces them to distribute the predictive weight evenly. This
+shrinks the inflated coefficients, pulls the suppressed coefficients
+back to its true direction, and drastically tightens their variance to
+create a stable model.
+
+### Examples from the Data
+
+**1. The `lcavol` and `lcp` Pair (Correlation: 0.73)**
+
+- **OLS:** Without the penalty, these variables compete. `lcavol`
+  absorbs a massive positive weight (0.674) while `lcp` is buried in the
+  negatives (-0.092). The OLS boxplots show wide, unstable variance for
+  both.
+
+- **Ridge:** Ridge forces weight sharing. `lcavol` is shrunk down to
+  0.459, which allows `lcp` to flip to a biologically consistent
+  positive value (0.082). The blue and green Ridge boxplots tighten
+  significantly, proving the variables are now acting as a stable,
+  unified group.
+
+**2. The `pgg45` and `gleason` Pair (Correlation: 0.76)**
+
+- **OLS:** Despite moving together in reality, they receive conflicting
+  signs (`pgg45` at 0.165, `gleason` at -0.013). The OLS boxplot for
+  `gleason` swings erratically across the zero-line, showing the model
+  cannot confidently determine its direction.
+
+- **Ridge:** Ridge punishes the inflated `pgg45` weight, shrinking it to
+  0.110. This relieves the mathematical tension, pulling `gleason` out
+  of the negatives up to 0.024. Their Ridge boxplots narrow drastically,
+  locking their shared predictive power into a cooperative, stable
+  state.
+
+```{r}
+library(tidyverse)
+library(glmnet)
+
+coef_ridge_min_list <- list()
+coef_ridge_1se_list <- list()
+
+for(i in 1:5) {
+  fold_x <- x_train[foldid != i, , drop = FALSE]
+  fold_y <- y_train[foldid != i]
+  
+  fold_ridge <- glmnet(fold_x, fold_y, alpha = 0)
+  
+  fold_coef_min <- as.matrix(coef(fold_ridge, s = ridge_model$lambda.min))
+  fold_coef_1se <- as.matrix(coef(fold_ridge, s = ridge_model$lambda.1se))
+  
+  coef_ridge_min_list[[i]] <- as.data.frame(t(fold_coef_min))
+  coef_ridge_1se_list[[i]] <- as.data.frame(t(fold_coef_1se))
+}
+
+coef_ridge_min_df <- bind_rows(coef_ridge_min_list)
+coef_ridge_1se_df <- bind_rows(coef_ridge_1se_list)
+
+long_ols <- coef_ols_df %>% 
+  mutate(Model = "1. OLS") %>% 
+  pivot_longer(cols = -Model, names_to = "Predictor", values_to = "Coefficient")
+
+long_ridge_min <- coef_ridge_min_df %>% 
+  mutate(Model = "2. Ridge (min)") %>% 
+  pivot_longer(cols = -Model, names_to = "Predictor", values_to = "Coefficient")
+
+long_ridge_1se <- coef_ridge_1se_df %>% 
+  mutate(Model = "3. Ridge (1se)") %>% 
+  pivot_longer(cols = -Model, names_to = "Predictor", values_to = "Coefficient")
+
+plot_data <- bind_rows(long_ols, long_ridge_min, long_ridge_1se) %>%
+  filter(Predictor != "(Intercept)")
+variance_table <- plot_data %>%
+  group_by(Predictor, Model) %>%
+  summarize(Variance = var(Coefficient), .groups = 'drop') %>%
+  pivot_wider(names_from = Model, values_from = Variance)
+
+cat("--- Variance of Coefficients Across Folds ---\n")
+print(variance_table)
+
+ggplot(plot_data, aes(x = Predictor, y = Coefficient, fill = Model)) +
+  geom_boxplot(alpha = 0.8, outlier.shape = 21, color = "black") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
+  theme_minimal() +
+  coord_flip() +
+  labs(
+    title = "Coefficient Stability Across CV Folds",
+    subtitle = "Comparing Variance: OLS vs. Ridge (lambda.min) vs. Ridge (lambda.1se)",
+    x = "Predictors",
+    y = "Coefficient Estimate"
+  ) +
+  scale_fill_manual(values = c("1. OLS" = "lightgray", 
+                               "2. Ridge (min)" = "steelblue", 
+                               "3. Ridge (1se)" = "seagreen")) +
+  theme(legend.position = "bottom", legend.title = element_blank())
+```
+
+### SVD Analysis
+
+```{r}
+# 1. Standardize your training data (glmnet does this automatically by default)
+x_scaled <- scale(x_train)
+
+# 2. Extract the Singular Values (d) using SVD
+d <- svd(x_scaled)$d
+
+# 3. Create a sequence of lambda values to match your previous plots
+# (glmnet scales the penalty by N, so we extract N as well)
+N <- nrow(x_train)
+lambdas <- ridge_model$glmnet.fit$lambda
+log_lambdas <- log(lambdas)
+
+# 4. Calculate the shrinkage factor for each of the 8 singular values
+# Formula: d^2 / (d^2 + N * lambda)
+shrinkage_factors <- matrix(0, nrow = length(lambdas), ncol = length(d))
+for(j in 1:length(d)) {
+  shrinkage_factors[, j] <- (d[j]^2) / (d[j]^2 + N * lambdas)
+}
+
+# 5. Plot the Shrinkage Profiles
+matplot(-log_lambdas, shrinkage_factors, type = "l", lty = 1, lwd = 2,
+        col = hcl.colors(length(d), palette = "Zissou 1"), # A clean color palette
+        xlab = expression(log(lambda)),
+        ylab = expression(frac(d[j]^2, d[j]^2 + N * lambda)),
+        main = "SVD Shrinkage Profiles by Singular Value",
+        ylim = c(0, 1))
+
+# 6. Add reference lines for your optimal lambdas
+abline(v = -log(ridge_model$lambda.min), col = "green", lty = 2, lwd = 1.5)
+abline(v = -log(ridge_model$lambda.1se), col = "blue", lty = 2, lwd = 1.5)
+
+# 7. Add a legend detailing the actual d values
+legend_labels <- sprintf("d%d = %.2f", 1:length(d), d)
+legend("topleft", legend = legend_labels, 
+       col = hcl.colors(length(d), palette = "Zissou 1"), 
+       lty = 1, lwd = 2, cex = 0.8, bg = "white")
+library(tidyverse)
+
+# 1. Convert the V_matrix into a format ggplot can read
+# (Assuming V_matrix was created in the previous step)
+v_data <- as.data.frame(V_matrix) %>%
+  rownames_to_column(var = "Predictor") %>%
+  pivot_longer(cols = -Predictor, 
+               names_to = "Singular_Vector", 
+               values_to = "Loading")
+
+# 2. Lock the column order so d1 stays on the left and d8 on the right
+v_data$Singular_Vector <- factor(v_data$Singular_Vector, levels = colnames(V_matrix))
+
+# 3. Plot the Heatmap
+ggplot(v_data, aes(x = Singular_Vector, y = Predictor, fill = Loading)) +
+  geom_tile(color = "gray90", size = 0.5) +
+  # Use a diverging color scale: Blue for positive, Red for negative, White for zero
+  scale_fill_gradient2(low = "firebrick", mid = "white", high = "steelblue", midpoint = 0) +
+  theme_minimal() +
+  labs(
+    title = "SVD Predictor Loadings (V Matrix)",
+    subtitle = "Visualizing the composition of each Principal Direction",
+    x = "Singular Vector (Ranked by Variance Explained)",
+    y = "Original Predictor",
+    fill = "Weight"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid = element_blank() # Removes messy gridlines behind the tiles
+  )
+```
 
 ```{r lasso, eval=FALSE}
+model_lasso <- fit_cv_glmnet(x_train,y_train,alpha= 1, foldid = foldid)
+plot(model_ridge)
+cat(sprintf("lambda.min: %.5f\n", model_lasso$lambda.min))
+cat(sprintf("lambda.1se: %.5f\n\n", model_lasso$lambda.1se))
+
+cat("--- Nonzero Predictors (lambda.min) ---\n")
+coef_min <- coef(model_ridge, s ='lambda.min')
+print(c_min[coef_min[,1]!= 0])# mask which is 0 on the coefficient column
+cat("\n--- Nonzero Predictors (lambda.1se) ---\n")
+coef_1se <- coef(model_ridge, s ='lambda.1se')
+print(c_1se[coef_1se[,1]!=0])
+
+min_id <- which(model_lasso$lambda == model_lasso$lambda.min)
+se1_id <- which(model_lasso$lambda == model_lasso$lambda.1se)
+cat(sprintf("cvm.min: %.5f\n", model_lasso$cvm[min_id]))
+cat(sprintf("cvm.1se: %.5f\n\n", model_lasso$cvm[se1_id]))
+
+plot(model_lasso$glmnet.fit, xvar ='lambda', label = TRUE )
+title("Lasso Coefficient Paths", line = 2.5)
 # Use fit_cv_glmnet(..., alpha = 1, foldid = foldid).
 # Report lambda.min, lambda.1se, paths, and nonzero predictors.
 lasso_model <- fit_cv_glmnet(x_train, y_train, alpha = 1, foldid = foldid)
