@@ -3,7 +3,7 @@
 ## 1. Archive Folder Layout
 
 To reproduce this analysis without path errors, ensure your directory exactly matches this structure:
-
+```
 ASESII_24A02_Project/
 ├── ASESII_24A02_ProjectExam_Ridge_Lasso_ProblemStatement.pdf
 ├── data/
@@ -14,7 +14,7 @@ ASESII_24A02_Project/
     ├── ASESII_24A02_ProjectExam_SampleSubmission.pdf
     ├── Group06_AI_Log.csv       
     └── references.bib
-
+```
 
 
 ## 2. Declared Software & Dependencies
