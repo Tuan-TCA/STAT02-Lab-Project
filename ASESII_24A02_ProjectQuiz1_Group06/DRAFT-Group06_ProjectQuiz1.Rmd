@@ -167,11 +167,8 @@ count_nonzero <- function(fit, s = "lambda.min", tol = 1e-8) {
 
 # measures multicollinearity and shows how applying Ridge regularization reduces instability
 safe_condition_numbers <- function(x, lambda, tol = 1e-10) {
-  eigenvalues <- eigen(
-    crossprod(x) / nrow(x),
-    symmetric = TRUE,
-    only.values = TRUE
-  )$values
+  G <- crossprod(x) / nrow(x)
+  eigenvalues <- eigen(G, symmetric = TRUE, only.values = TRUE)$values
   largest <- max(eigenvalues)
   smallest <- max(min(eigenvalues), 0)
   cutoff <- tol * max(1, largest)
@@ -405,7 +402,7 @@ observations to avoid information leakage from the holdout set.
 
 ### Response distribution
 
-```{r training-eda, eval=FALSE}
+```{r, eval=FALSE}
 summary(y_train)
 sd(y_train)
 
@@ -423,7 +420,7 @@ present in the upper tail.
 
 ### One correlation table or focused relationship plot
 
-```{r training-eda, eval=FALSE}
+```{r, eval=FALSE}
 cor_matrix <- cor(analysis_data[train_id, ])
 
 heatmap_df <- expand.grid(
@@ -448,15 +445,15 @@ ggplot(heatmap_df, aes(Var1, Var2, fill = value)) +
 ```
 
 The correlation heatmap shows that **lcavol** has the strongest positive
-correlation with the response (`r = 0.75`), indicating that tumor volume
+correlation with the response ($r = 0.75$), indicating that tumor volume
 is the most informative individual predictor of PSA level. Moderate
-positive correlations are also observed for **lcp** (`r = 0.59`) and
-**svi** (`r = 0.58`), whereas `age`, `lbph`, and `lweight` exhibit
+positive correlations are also observed for **lcp** ($r = 0.59$) and
+**svi** ($r = 0.58$), whereas `age`, `lbph`, and `lweight` exhibit
 relatively weak marginal relationships with the response.
 
 ### One possible anomaly or influential observation
 
-```{r training-eda, eval=FALSE}
+```{r, eval=FALSE}
 boxplot(analysis_data[train_id, ])
 ```
 
@@ -470,12 +467,12 @@ diagnostics in the OLS analysis.
 
 ### One pair or group of predictors for which multicollinearity may matter
 
-```{r training-eda, eval=FALSE}
+```{r, eval=FALSE}
 ```
 
 The strongest correlations among the predictors are observed between
-`gleason` and `pgg45` (`r = 0.76`), `lcavol` and `lcp` (`r = 0.73`),
-`lcp` and `svi` (`r = 0.67`), and `lcavol` and `svi` (`r = 0.59`). These
+`gleason` and `pgg45` ($r = 0.76$), `lcavol` and `lcp` ($r = 0.73$),
+`lcp` and `svi` ($r = 0.67$), and `lcavol` and `svi` ($r = 0.59$). These
 predictor pairs appear to contain overlapping information, suggesting
 that multicollinearity may be present. Consequently, ordinary least
 squares coefficient estimates may become unstable and exhibit inflated
@@ -554,10 +551,10 @@ plot(ridge_model)
 cat(sprintf("lambda.min: %.5f\n", ridge_model$lambda.min))
 cat(sprintf("lambda.1se: %.5f\n\n", ridge_model$lambda.1se))
 
-min_id <- which(ridge_model$lambda == ridge_model$lambda.min)
-se1_id <- which(ridge_model$lambda == ridge_model$lambda.1se)
-cat(sprintf("cvm.min: %.5f\n", ridge_model$cvm[min_id]))
-cat(sprintf("cvm.1se: %.5f\n\n", ridge_model$cvm[se1_id]))
+cv_ridge_min <- ridge_model$cvm[which(ridge_model$lambda == ridge_model$lambda.min)]
+cv_ridge_1se <- ridge_model$cvm[which(ridge_model$lambda == ridge_model$lambda.1se)]
+cat(sprintf("cvm.min: %.5f\n", cv_ridge_min))
+cat(sprintf("cvm.1se: %.5f\n\n", cv_ridge_1se))
 
 # the plot automatically turn into the plot.glmnet function
 plot(ridge_model$glmnet.fit, xvar = "lambda", label = TRUE)
@@ -579,20 +576,20 @@ lasso_model <- fit_cv_glmnet(x_train, y_train, alpha = 1, foldid = foldid)
 plot(lasso_model)
 
 cat(sprintf("lambda.min: %.5f\n", lasso_model$lambda.min))
-cat(sprintf("lambda.1se: %.5f\n\n", lasso_model$lambda.1se))
+cat(sprintf("lambda.1se: %.5f\n", lasso_model$lambda.1se))
 
-cat("--- Nonzero Predictors (lambda.min) ---\n")
-coef_min <- coef(lasso_model, s = "lambda.min")
-print(coef_min[coef_min[, 1] != 0]) # mask 0 on the coefficient column
+cat("\n--- Nonzero Predictors (lambda.min) ---\n")
+coef_lasso_min <- coef(lasso_model, s = "lambda.min")
+print(coef_lasso_min[coef_lasso_min[, 1] != 0]) # mask 0 on the coefficient column
+
 cat("\n--- Nonzero Predictors (lambda.1se) ---\n")
-coef_1se <- coef(lasso_model, s = "lambda.1se")
-print(coef_1se[coef_1se[, 1] != 0])
+coef_lasso_1se <- coef(lasso_model, s = "lambda.1se")
+print(coef_lasso_1se[coef_lasso_1se[, 1] != 0])
 
-min_id <- which(lasso_model$lambda == lasso_model$lambda.min)
-se1_id <- which(lasso_model$lambda == lasso_model$lambda.1se)
-
-cat(sprintf("cvm.min: %.5f\n", lasso_model$cvm[min_id]))
-cat(sprintf("cvm.1se: %.5f\n\n", lasso_model$cvm[se1_id]))
+cv_lasso_min <- lasso_model$cvm[which(lasso_model$lambda == lasso_model$lambda.min)]
+cv_lasso_1se <- lasso_model$cvm[which(lasso_model$lambda == lasso_model$lambda.1se)]
+cat(sprintf("cvm.min: %.5f\n", cv_lasso_min))
+cat(sprintf("cvm.1se: %.5f\n\n", cv_lasso_1se))
 
 plot(lasso_model$glmnet.fit, xvar = "lambda", label = TRUE)
 title("Lasso Coefficient Paths", line = 2.5)
@@ -603,16 +600,110 @@ title("Lasso Coefficient Paths", line = 2.5)
 
 ```{r core-comparison, eval=FALSE}
 # Build a comparison from training/CV quantities only.
+
+# calculate L2 norm (excluding intercept)
+get_norm <- function(coefs) {
+  coef_mat <- as.matrix(coefs)
+  sqrt(sum(coef_mat[-1, ]^2, na.rm = TRUE))
+}
+
+# count non-zero slopes (excluding intercept)
+get_nonzero <- function(coefs) {
+  coef_mat <- as.matrix(coefs)
+  sum(coef_mat[-1, ] != 0, na.rm = TRUE)
+}
+
+# extraction for OLS
+coef_ols <- coef(ols_model)
+norm_ols <- get_norm(coef_ols)
+nz_ols <- get_nonzero(coef_ols)
+cv_ols <- cv_mse_mean
+
+# extraction for Ridge
+cv_ridge_min 
+coef_ridge_min <- coef(ridge_model, s = "lambda.min")
+norm_ridge_min <- get_norm(coef_ridge_min)
+nz_ridge_min <- get_nonzero(coef_ridge_min)
+
+cv_ridge_1se
+coef_ridge_1se <- coef(ridge_model, s = "lambda.1se")
+norm_ridge_1se <- get_norm(coef_ridge_1se)
+nz_ridge_1se <- get_nonzero(coef_ridge_1se)
+
+# extraction for Lasso
+cv_lasso_min
+coef_lasso_min
+norm_lasso_min <- get_norm(coef_lasso_min)
+nz_lasso_min <- get_nonzero(coef_lasso_min)
+
+cv_lasso_1se
+coef_lasso_1se
+norm_lasso_1se <- get_norm(coef_lasso_1se)
+nz_lasso_1se <- get_nonzero(coef_lasso_1se)
+
+comparison_table <- data.frame(
+  Model = c("OLS", "Ridge", "Ridge", "Lasso", "Lasso"),
+  tuning_rule = c("none", "min", "1se", "min", "1se"),
+  cv_error = c(cv_ols, cv_ridge_min, cv_ridge_1se, cv_lasso_min, cv_lasso_1se),
+  coef_norm = c(norm_ols, norm_ridge_min, norm_ridge_1se, norm_lasso_min, norm_lasso_1se),
+  nonzero_slopes = c(nz_ols, nz_ridge_min, nz_ridge_1se, nz_lasso_min, nz_lasso_1se)
+)
+
+knitr::kable(comparison_table, digits = 4)
 ```
 
 **Core model nominated before holdout evaluation:** [method and reason]
 
+**Why lambda.min and lambda.1se answer different decision questions. Distinguish predictive performance from variable selection and interpretability.**
+
+lambda.min (predictive performance)
+
+- "What model gives the absolute lowest cross-validation error?" 
+- It prioritizes raw predictive accuracy. 
+- Because the CV curve is often flat near the minimum, it tends to retain more variables, some of which might be noise.
+
+lambda.1se (variable selection and interpretability)
+
+- "What is the simplest model whose performance is within an acceptable margin of error of the absolute best?" 
+- It selects the most heavily penalized model whose CV error is within one standard error of the minimum. 
+- It prioritizes fewer variables, making the model easier to interpret and less prone to overfitting.
+- It suffers from a marginal drop in theoretical predictive performance.
+
 ## 2E. Perturbation or stability check
+
+- Investigation
+  - repeat five-fold cross-validation with three prespecified fold seeds -> randomness of cross-validation
+  - duplicate a highly correlated predictor with small random noise -> how different regularizations handle multicollinearity
+  - bootstrap the training observations and record lasso selection frequencies -> variable selection stability
 
 **Prediction before running the check:** [prediction]
 
 ```{r perturbation, eval=FALSE}
 # Implement one allowed training-only stability check.
+set.seed(42)
+
+# Select a known strong predictor
+target_idx <- 1 
+target_name <- colnames(x_train)[target_idx]
+
+# Create a duplicate with tiny random noise
+noise <- rnorm(nrow(x_train), mean = 0, sd = 0.01)
+duplicate_var <- x_train[, target_idx] + noise
+
+x_train_pert <- cbind(x_train, duplicate_var = duplicate_var)
+
+# Fit Ridge and Lasso on the perturbed data
+ridge_pert <- fit_cv_glmnet(x_train_pert, y_train, alpha = 0, foldid = foldid)
+lasso_pert <- fit_cv_glmnet(x_train_pert, y_train, alpha = 1, foldid = foldid)
+
+coef_ridge_pert <- coef(ridge_pert, s = "lambda.1se")
+coef_lasso_pert <- coef(lasso_pert, s = "lambda.1se")
+
+cat("--- Ridge Coefficients (Original vs Duplicate) ---\n")
+print(coef_ridge_pert[c(target_name, "duplicate_var"), , drop = FALSE])
+
+cat("\n--- Lasso Coefficients (Original vs Duplicate) ---\n")
+print(coef_lasso_pert[c(target_name, "duplicate_var"), , drop = FALSE])
 ```
 
 **Observed result and explanation:** [result]
@@ -639,7 +730,7 @@ We expand Ridge objective function $$\begin{align}
   &= \frac{1}{2n} (y^\top y - 2 y^\top X b + b^\top X^\top X b) + \frac{\lambda}{2} b^\top b \\
 \end{align}$$
 
-We take the gradient with respect to $b$ annd substitute $$\begin{align}
+We take the gradient with respect to $b$ and substitute $$\begin{align}
   \nabla_b Q_\lambda (b) &= 0 - \frac{1}{n} y^\top X + \frac{1}{n} X^\top X b + \lambda b \\
   &= - z + G b + \lambda b
 \end{align}$$
@@ -660,28 +751,16 @@ $$\hat{b}_\lambda^{\text{ridge}} = (G + \lambda I_p)^{-1} z$$
 # Use x_train and the fitted ridge lambda.min.
 # safe_condition_numbers(x_train, lambda = ...)
 
-n <- nrow(x_train)
-
-# Compute G and z
-G <- (1 / n) * t(x_train) %*% x_train
-
-# Compute the eigenvalues of G
-evals_G <- eigen(G)$values
-mu_max <- max(evals_G)
-mu_min <- min(evals_G)
-
-# Compute kappa_2(G)
-kappa_G <- ifelse(zapsmall(mu_min) == 0, Inf, mu_max / mu_min)
-
-# Compute kappa_2(G + lambda*I)
-lambda_min <- ridge_model$lambda.min
-kappa_ridge <- (mu_max + lambda_min) / (mu_min + lambda_min)
+condition_numbers <- safe_condition_numbers(x_train, ridge_model$lambda.min)
+kappa_G <- condition_numbers["gram"]
+kappa_ridge <- condition_numbers["ridge"]
 
 cat("Condition number of G (kappa_G):", kappa_G, "\n")
 cat("Condition number of Ridge (kappa_ridge):", kappa_ridge, "\n")
 ```
 
-*Explanation.*
+**Explanation.**
+
 - *Numerically:*
   - Condition number $\kappa_2(G)$ measures how sensitive the solution is to
 small changes or errors in the data.
@@ -795,6 +874,7 @@ where $(u)_+ = \max(u, 0)$.
 
 **Why lasso can produce exact zeros while ridge generally does not.**
 Under $\frac{1}{n} X^T X = I_p$, we can compare the closed-form estimators
+
 - **Ridge:**
 $\hat{b}_j^{\text{Ridge}} = (1 + 2 \lambda)^{-1} z_j$ (proportional
 shrinkage). It divides the coefficient by a constant. The coefficients
