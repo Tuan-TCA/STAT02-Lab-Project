@@ -1,0 +1,6 @@
+templates/*.aux
+templates/*.fdb_latexmk
+templates/*.fls
+templates/*.log
+templates/*.synctex.gz
+templates/*.toc

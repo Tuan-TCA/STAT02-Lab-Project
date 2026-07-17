@@ -1,0 +1,9 @@
+Section,AI Task,Human Verification,Outcome
+1,Assisted in interpreting the assignment requirements and marking criteria,Compared with the official specification before implementation,Accepted with edits
+2C,Refined interpretation of Lasso coefficients and variable selection,Compared with glmnet output and updated wording,Accepted with edits
+4B,Drafted Elastic Net R Markdown structure and explanatory text,"Executed code, verified CV results and selected alpha/lambda",Accepted with edits
+4C,Drafted fixed ReLU feature pipeline and documentation,"Ran code, checked feature generation and metrics",Accepted with edits
+4D,Summarized holdout performance and model comparison,Verified RMSE/MAE against computed results,Accepted
+5A,Improved reproducibility instructions,Tested from a clean R session,Accepted with edits
+5B,Revised reproducibility statement and report wording,Reviewed manually for accuracy,Accepted
+General,"Grammar, formatting, and R Markdown polishing",Manual proofreading by all group members,Accepted

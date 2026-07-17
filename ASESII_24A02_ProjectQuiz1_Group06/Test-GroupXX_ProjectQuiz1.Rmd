@@ -1,8 +1,0 @@
-setwd("C:/Users/Tuan TCA/OneDrive/Tai_Lieu/2ndYear/Math/STAT2/In-Class/project_quiz1/ASESII_24A02_ProjectQuiz1_Group06")
-
-
-df <- read.csv("data/prostate.csv")
-head(df)
-str(df)
-summary(df)
-
