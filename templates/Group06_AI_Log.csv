@@ -1,9 +1,13 @@
 Section,AI Task,Human Verification,Outcome
-1,Assisted in interpreting the assignment requirements and marking criteria,Compared with the official specification before implementation,Accepted with edits
-2C,Refined interpretation of Lasso coefficients and variable selection,Compared with glmnet output and updated wording,Accepted with edits
-4B,Drafted Elastic Net R Markdown structure and explanatory text,"Executed code, verified CV results and selected alpha/lambda",Accepted with edits
-4C,Drafted fixed ReLU feature pipeline and documentation,"Ran code, checked feature generation and metrics",Accepted with edits
-4D,Summarized holdout performance and model comparison,Verified RMSE/MAE against computed results,Accepted
-5A,Improved reproducibility instructions,Tested from a clean R session,Accepted with edits
-5B,Revised reproducibility statement and report wording,Reviewed manually for accuracy,Accepted
-General,"Grammar, formatting, and R Markdown polishing",Manual proofreading by all group members,Accepted
+1,"Assisted in interpreting the assignment requirements and marking criteria","Compared with the official specification before implementation","Accepted with edits"
+2C,"Refined interpretation of Lasso coefficients and variable selection","Compared with glmnet output and updated wording","Accepted with edits"
+3A,"Ridge regression derivation","Re-derived the penalized least squares objective using matrix calculus and verified each differentiation step against standard references. Confirmed the normal equation $(X^\top X + \lambda I_p)\hat{\beta} = X^\top y$ and the resulting closed-form Ridge estimator.","Accepted with minor revision: Improved notation and expanded intermediate algebraic steps for clarity."
+3B,"Lasso soft-thresholding derivation","Verified the coordinate-wise optimization using conditions under an orthonormal design matrix. Confirmed that the solution is the soft-thresholding operator and that the derivation is valid only under the stated orthonormal assumption.","Accepted with revision: Improve notation and coherence, and readability."
+4A,"Discussion of weight decay and adaptive optimization","Checked theoretical claims against the original literature on L2 regularization and decoupled weight decay. Confirmed that adaptive optimizers such as Adam make L2 regularization and weight decay no longer equivalent, consistent with Loshchilov and Hutter (2019).","Accepted with revision: Removed unsupported claims and restricted the discussion to statements directly supported by the cited references."
+4B,"Drafted Elastic Net R Markdown structure and explanatory text","Executed code, verified CV results and selected alpha/lambda","Accepted with edits"
+4C,"Drafted fixed ReLU feature pipeline and documentation","Ran code, checked feature generation and metrics","Accepted with edits"
+4D,"Summarized holdout performance and model comparison","Verified RMSE/MAE against computed results","Accepted"
+5A,"Improved reproducibility instructions","Tested from a clean R session","Accepted with edits"
+5B,"Revised reproducibility statement and report wording","Reviewed manually for accuracy","Accepted"
+General,"Manual VIF helper function","Compared the custom implementation with the output of car::vif() using the baseline OLS model. Both methods produced identical variance inflation factors up to numerical precision.","Accepted: The custom implementation was retained to avoid introducing an additional package dependency."
+General,"Grammar, formatting, and R Markdown polishing","Manual proofreading by all group members","Accepted"
