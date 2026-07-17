@@ -71,6 +71,9 @@ seeds <- list(
 ```
 
 
+
+
+
 ## Shared helper functions {.unnumbered}
 
 ```{r helpers}
@@ -203,6 +206,9 @@ nonzero_slopes <- function(coefs, tol = 1e-8) {
 ```
 
 
+
+
+
 # Problem 1. Prediction design and leakage control
 
 ## 1A. Target and predictors
@@ -231,6 +237,9 @@ if (!all(vapply(analysis_data, is.numeric, logical(1)))) {
   stop("The assigned response and predictors must be numeric.")
 }
 ```
+
+
+
 
 
 *Define the prediction task and justify every exclusion.*
@@ -306,6 +315,9 @@ foldid <- make_foldid(nrow(x_train), k = 5L, seed = seeds$cv)
 ```
 
 
+
+
+
 *Report seeds, dimensions, scaling, folds, and leakage safeguards.*
 
 ### 1. Split seed
@@ -377,6 +389,9 @@ qqline(y_train)
 ```
 
 
+
+
+
 The response variable (`lpsa`) has a mean of **2.54** and a median of
 **2.59**, indicating an approximately symmetric distribution. Most
 observations lie between **1.73** (first quartile) and **3.28** (third
@@ -400,6 +415,9 @@ pairs(
   cex = 0.6
 )
 ```
+
+
+
 
 
 The scatterplot matrix provides a visual overview of pairwise
@@ -436,6 +454,9 @@ ggplot(heatmap_df, aes(Var1, Var2, fill = value)) +
 ```
 
 
+
+
+
 The correlation heatmap shows that **lcavol** has the strongest linear
 relationship with the response (*r* = 0.75), indicating that tumor
 volume is the single most informative predictor of `lpsa`. Moderate
@@ -469,6 +490,9 @@ coefficient instability is present.
 ```{r boxplot, eval=FALSE}
 boxplot(analysis_data[train_id, ])
 ```
+
+
+
 
 
 The boxplots identify several potential outliers, particularly in
@@ -507,6 +531,9 @@ ols_model <- lm(lpsa ~ ., data = x_train_df)
 ```
 
 
+
+
+
 The fitted OLS model serves as the baseline model for all subsequent
 comparisons with ridge and lasso regression.
 
@@ -515,6 +542,9 @@ comparisons with ridge and lasso regression.
 ```{r ols-summary, eval=FALSE}
 summary(ols_model)
 ```
+
+
+
 
 
 The fitted OLS model is statistically significant overall (**F =
@@ -555,6 +585,9 @@ train_rmse <- sqrt(train_mse)
 cat("Training MSE :", round(train_mse, 4), "\n")
 cat("Training RMSE:", round(train_rmse, 4), "\n")
 ```
+
+
+
 
 
 The fitted OLS model achieved
@@ -598,6 +631,9 @@ cat("Mean CV RMSE:", round(sqrt(mean(cv_mse)), 4), "\n")
 ```
 
 
+
+
+
 The validation errors obtained from the five folds are
 
 | Fold | Validation MSE |
@@ -637,6 +673,9 @@ abline(h = 0, col = "red")
 ```
 
 
+
+
+
 The residual-versus-fitted plot shows that the residuals are randomly
 scattered around zero without noticeable curvature or funnel-shaped
 patterns. This suggests that the assumptions of
@@ -653,6 +692,9 @@ misspecification is observed.
 qqnorm(resid(ols_model))
 qqline(resid(ols_model), col = "red")
 ```
+
+
+
 
 
 The normal Q-Q plot indicates that most residuals lie close to the
@@ -678,6 +720,9 @@ assumption.
 ```{r ols-influence, eval=FALSE}
 plot(ols_model, which = 5)
 ```
+
+
+
 
 
 Most observations have low leverage and moderate residuals. Although a
@@ -707,6 +752,9 @@ abline(
 ```
 
 
+
+
+
 Several observations exceed the reference line $4/n$, but all Cook's
 distance values are well below 1. Therefore, there is no strong evidence
 of influential observations.
@@ -720,6 +768,9 @@ regression.
 ```{r ols-vif, eval=FALSE}
 vif_manual(ols_model)
 ```
+
+
+
 
 
 The variance inflation factors (VIFs) were computed to assess
@@ -797,6 +848,9 @@ text(-log(ridge_model$lambda.1se),
 ```
 
 
+
+
+
 The cross-validation curve shows how the prediction error changes with
 the penalty parameter. The mean cross-validation error decreases until
 reaching its minimum at **`lambda.min`**. Around the minimum, the error
@@ -817,6 +871,9 @@ below.
 cat(sprintf("lambda.min: %.5f\n", ridge_model$lambda.min))
 cat(sprintf("lambda.1se: %.5f\n\n", ridge_model$lambda.1se))
 ```
+
+
+
 
 
 `lambda.min` is the value of $\lambda$ that minimizes the mean
@@ -840,6 +897,9 @@ coef(ridge_model, s = "lambda.min")
 ```
 
 
+
+
+
 At `lambda.min`, the model achieves the lowest cross-validation error.
 The coefficients are moderately shrunk compared with the OLS estimates,
 while the most important predictors still retain relatively large
@@ -854,6 +914,9 @@ cat(sprintf("cvm.1se: %.5f\n\n", ridge_model$cvm[se1_id]))
 
 coef(ridge_model, s = "lambda.1se")
 ```
+
+
+
 
 
 Using the larger penalty `lambda.1se` shrinks every coefficient further
@@ -910,6 +973,9 @@ legend("topleft",
        bg = "white",
        ncol = 2)
 ```
+
+
+
 
 
 As the penalty decreases (moving from left to right), the coefficients
@@ -990,6 +1056,9 @@ text(-log(lasso_model$lambda.1se), y_pos,
 ```
 
 
+
+
+
 Unlike Ridge regression, Lasso performs both coefficient shrinkage and
 variable selection. As the penalty increases, some coefficients are
 shrunk exactly to zero, producing a simpler and more interpretable
@@ -1007,6 +1076,9 @@ cat(sprintf("lambda.1se: %.5f\n\n", lasso_model$lambda.1se))
 ```
 
 
+
+
+
 The corresponding training cross-validation errors are
 
 ```{r}
@@ -1020,6 +1092,9 @@ cat(sprintf("cvm.1se : %.5f\n\n",
 ```
 
 
+
+
+
 The selected predictors under the two tuning rules are
 
 ```{r}
@@ -1031,6 +1106,9 @@ cat("\n--- Nonzero coefficients (lambda.1se) ---\n")
 coef_1se <- coef(lasso_model, s = "lambda.1se")
 print(coef_1se[coef_1se[, 1] != 0, ])
 ```
+
+
+
 
 
 `lambda.min` prioritizes predictive accuracy and therefore usually keeps
@@ -1067,6 +1145,9 @@ legend("topleft",
        cex = 0.75,
        bg = "white")
 ```
+
+
+
 
 
 Unlike Ridge regression, Lasso coefficient paths frequently terminate at
@@ -1193,6 +1274,9 @@ knitr::kable(comparison_table, digits = 4)
 ```
 
 
+
+
+
 Regularization improves predictive performance over OLS, with both Ridge
 (`lambda.min`) and Lasso (`lambda.min`) achieving lower cross-validation
 errors. Ridge shrinks the coefficients but retains all eight predictors,
@@ -1277,6 +1361,9 @@ print(lasso_coef[c(target_name, "duplicate_var"), , drop = FALSE])
 ```
 
 
+
+
+
 ### Observed result and explanation
 
 The perturbation confirms the expected behaviour of the two
@@ -1348,6 +1435,9 @@ kappa_ridge <- condition_numbers["ridge"]
 cat("Condition number of G (kappa_G):", kappa_G, "\n")
 cat("Condition number of Ridge (kappa_ridge):", kappa_ridge, "\n")
 ```
+
+
+
 
 
 ### Numerical interpretation
@@ -1757,6 +1847,9 @@ legend(
 ```
 
 
+
+
+
 ### Selection rule
 
 For each candidate value of $\alpha$, an Elastic Net model was fitted
@@ -1918,6 +2011,9 @@ H_test <- apply_scaler(
 ```
 
 
+
+
+
 Ridge, lasso, and elastic net were fitted on the fixed ReLU feature
 matrix using the shared five-fold cross-validation assignment. For
 elastic net, the mixing parameter $\alpha$ was selected from the same
@@ -1970,6 +2066,9 @@ enet_relu <- enet_models[[best_id]]
 ```
 
 
+
+
+
 The selected tuning values, training cross-validation errors, and
 numbers of active hidden features are summarized below.
 
@@ -2013,6 +2112,9 @@ knitr::kable(
   caption = "Cross-validation results on the fixed ReLU features."
 )
 ```
+
+
+
 
 
 ### Fixed and learned parameters
@@ -2133,6 +2235,9 @@ knitr::kable(
 ```
 
 
+
+
+
 ### Holdout evaluation
 
 The holdout evaluation was performed only once after the analysis had
@@ -2216,7 +2321,7 @@ bibliography file, and the raw CSV datasets inside a local `data/`
 subdirectory:
 
 ``` text
-ASESII_24A02_Project/
+STAT02_Lab_Project/
 ├── ASESII_24A02_ProjectExam_Ridge_Lasso_ProblemStatement.pdf
 ├── data/
     └── prostate.csv

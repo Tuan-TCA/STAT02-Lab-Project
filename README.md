@@ -4,7 +4,7 @@
 
 To reproduce this analysis without path errors, ensure your directory exactly matches this structure:
 ```
-ASESII_24A02_Project/
+STAT02-Lab-Project/
 ├── ASESII_24A02_ProjectExam_Ridge_Lasso_ProblemStatement.pdf
 ├── data/
     └── prostate.csv
@@ -38,9 +38,9 @@ Open a Clean Session: Launch RStudio and select Session -> Restart R (or run rm(
 Set Working Directory: Set your working directory to the folder containing Group06_ProjectQuiz1.Rmd.
 
 Render Report: Execute the following command in the R console:
-
-rmarkdown::render("Group06_ProjectQuiz1.Rmd", output_format = "all")
-
+```
+rmarkdown::render("templates/ASESII_24A02_ProjectExam_SampleSubmission.Rmd", output_format = "all")
+```
 
 Verify Output: Check the directory for the generated Group06_ProjectQuiz1.html (and/or .pdf) file.
 
